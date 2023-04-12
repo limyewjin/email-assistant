@@ -41,4 +41,5 @@ Run the email assistant which runs in a loop:
 python code/main.py
 ```
 
-
+## Acknowledgements
+Code uses part of an early version of [Auto-GPT](https://github.com/Torantulino/Auto-GPT) with heavy modifications.
