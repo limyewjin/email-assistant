@@ -12,7 +12,7 @@ Python 3.8 or higher
 pip install -r requirements.txt
 ```
 
-2. Follow the instructions at Google Calendar Simple API Getting Started to set up the Google Calendar API credentials.
+2. Follow the instructions at Google Calendar Simple API [Getting Started](https://google-calendar-simple-api.readthedocs.io/en/latest/getting_started.html) to set up the Google Calendar API credentials.
 
 ## Environment Variables
 
