@@ -80,9 +80,9 @@ def execute_command(command_name, arguments):
 
 def calendar_add_event(text, send_notifications):
     try:
-        sendUpdates = 'all' if send_notifications.lower() == "true" else 'none'
+        send_updates = 'all' if send_notifications.lower() == "true" else 'none'
         calendar = GoogleCalendar('limyewjin@gmail.com')
-        calendar.add_quick_event(text, sendUpdates=sendUpdates)
+        calendar.add_quick_event(text, send_updates=send_updates)
     except Exception as e:
         return f"Error adding: {e}"
 
