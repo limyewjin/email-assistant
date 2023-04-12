@@ -1,6 +1,5 @@
-env
 .env
-code/.env
+.credentials/*
 __pycache__/
 */.DS_Store
 .DS_Store

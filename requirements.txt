@@ -1,0 +1,4 @@
+python-dotenv
+imap-tools
+colorama
+gcsa
