@@ -16,7 +16,7 @@ COMMANDS:
 9. Count words: "count_words", args: "text": "<text>"
 10. Get current date time: "get_datetime", args:
 11. Get calendar events: "calendar_get_events", args: "time_min": "<arg - isoformat string of starting datetime, use this to help filter number of events retrieved>", "time_max": "<optional arg - isoformat string of ending datetime>"
-12. Add calendar event: "calendar_add_event", args: "text": "<Event based on text string - Example: 'Appointment at Somewhere on June 3rd 10am-10:25am'>"
+12. Add calendar event: "calendar_add_event", args: "text": "<Event based on text string - Example: 'Appointment at Somewhere on June 3rd 10am-10:25am'>", "send_notifications": "<boolean:true/false>"
 13. Delete calendar event: "calendar_delete_event", args: "event_id": "<event_id>"
 14. Task Complete: "task_complete", args: "final_answer": "<final_answer>"
 

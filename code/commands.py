@@ -69,7 +69,7 @@ def execute_command(command_name, arguments):
             time_max = datetime.datetime.fromisoformat(arguments["time_max"]) if "time_max" in arguments and arguments["time_max"] != "" else None
             return calendar_get_events(time_min, time_max)
         elif command_name == "calendar_add_event":
-            return calendar_add_event(arguments["text"])
+            return calendar_add_event(arguments["text"], arguments["send_notifications"])
         elif command_name == "task_complete":
             return task_complete(arguments["final_answer"])
         else:
@@ -78,10 +78,11 @@ def execute_command(command_name, arguments):
     except Exception as e:
         return "Error: " + str(e)
 
-def calendar_add_event(text):
+def calendar_add_event(text, send_notifications):
     try:
+        sendUpdates = 'all' if send_notifications.lower() == "true" else 'none'
         calendar = GoogleCalendar('limyewjin@gmail.com')
-        calendar.add_quick_event(text)
+        calendar.add_quick_event(text, sendUpdates=sendUpdates)
     except Exception as e:
         return f"Error adding: {e}"
 
