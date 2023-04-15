@@ -1,4 +1,5 @@
 .env
+.env_demo
 .credentials/*
 data/memory.txt
 data/notes/*
