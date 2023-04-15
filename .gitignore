@@ -1,6 +1,6 @@
 .env
 .credentials/*
-./data/memory.txt
+data/memory.txt
 __pycache__/
 */.DS_Store
 .DS_Store
