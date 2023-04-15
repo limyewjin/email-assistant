@@ -15,6 +15,13 @@ console.setLevel(logging.ERROR)
 console.setFormatter(logging.Formatter(log_format))
 logging.getLogger('').addHandler(console)
 
+full_message_history = []
+working_message_history = []
+
+def reset():
+    global full_message_history, working_message_history
+    full_message_history = []
+    working_message_history = []
 
 def create_chat_message(role, content):
     """
@@ -25,7 +32,11 @@ def create_chat_message(role, content):
     Returns:
     dict: A dictionary containing the role and content of the message.
     """
-    return {"role": role, "content": content}
+    global full_message_history, working_message_history
+
+    message = {"role": role, "content": content}
+    full_message_history.append(message)
+    working_message_history.append(message)
 
 
 def optimize_messages(messages):
@@ -61,55 +72,51 @@ def optimize_messages(messages):
 def chat_with_ai(
         prompt,
         user_input,
-        full_message_history,
         permanent_memory,
         code_memory,
         token_limit,
         debug=False):
-    while True:
-        code_memory_short = {
-                key: {
-                    'description': code_memory[key]['description'],
-                    'args': code_memory[key]['args'] 
-                }
-                for key in code_memory }
-        current_context = [
-                create_chat_message("system", prompt),
-                create_chat_message("system", f"Permanent memory: {permanent_memory}"),
-                create_chat_message("system", f"Code memory: {code_memory_short}"),
-                ]
+    global full_message_history, working_message_history
 
-        num_current_context_tokens = sum(len(msg["content"].split()) for msg in current_context) + len(prompt.split())
-        num_full_message_history_tokens = sum(len(msg["content"].split()) for msg in full_message_history)
+    code_memory_short = {
+            key: {
+                'description': code_memory[key]['description'],
+                'args': code_memory[key]['args'] 
+            }
+            for key in code_memory }
+    current_context = [
+            create_chat_message("system", prompt),
+            create_chat_message("system", f"Permanent memory: {permanent_memory}"),
+            create_chat_message("system", f"Code memory: {code_memory_short}"),
+            ]
 
-        if num_current_context_tokens + num_full_message_history_tokens > token_limit / 2:
-            # Optimize the messages using the `optimize_messages` function
-            logging.info("Optimizing conversation as it is getting too long")
-            condensed_messages = optimize_messages(full_message_history[:-2])
-            current_context.extend(condensed_messages + full_message_history[-2:])
-            logging.info(f"adding this to context: {condensed_messages + full_message_history[-2:]}")
-        else:
-            current_context.extend(full_message_history)
+    num_current_context_tokens = sum(len(msg["content"].split()) for msg in current_context) + len(prompt.split())
+    num_working_message_history_tokens = sum(len(msg["content"].split()) for msg in working_message_history)
 
-        if len(user_input.strip()) > 0:
-            current_context.extend([create_chat_message("user", user_input)])
+    if num_current_context_tokens + num_working_message_history_tokens > token_limit / 2:
+        # Optimize the messages using the `optimize_messages` function
+        logging.info("Optimizing conversation as it is getting too long")
+        condensed_messages = optimize_messages(full_message_history[:-2])
+        working_message_history = condensed_messages + full_message_history[-2:]
+        logging.info(f"adding this to context: {condensed_messages + full_message_history[-2:]}")
+    current_context.extend(working_message_history)
 
-        # Debug print the current context
-        if debug:
-            print("------------ CONTEXT SENT TO AI ---------------")
-            for message in current_context:
-                # Skip printing the prompt
-                if message["role"] == "system" and message["content"] == prompt:
-                    continue
-                print(f"{message['role'].capitalize()}: {message['content']}")
-            print("----------- END OF CONTEXT ----------------")
+    if len(user_input.strip()) > 0:
+        current_context.extend([create_chat_message("user", user_input)])
 
-        assistant_reply = api.generate_response(current_context, model="gpt-4").strip()
+    # Debug print the current context
+    if debug:
+        print("------------ CONTEXT SENT TO AI ---------------")
+        for message in current_context:
+            # Skip printing the prompt
+            if message["role"] == "system" and message["content"] == prompt:
+                continue
+            print(f"{message['role'].capitalize()}: {message['content']}")
+        print("----------- END OF CONTEXT ----------------")
 
-        # Update full message history
-        if len(user_input.strip()) > 0:
-            full_message_history.append(
-                    create_chat_message("user", user_input))
-        full_message_history.append(
-                create_chat_message("assistant", assistant_reply))
-        return assistant_reply
+    assistant_reply = api.generate_response(current_context, model="gpt-4").strip()
+
+    # Update message history
+    if len(user_input.strip()) > 0: create_chat_message("user", user_input)
+    create_chat_message("assistant", assistant_reply)
+    return assistant_reply

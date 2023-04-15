@@ -140,10 +140,10 @@ def construct_prompt():
 def resolve_request(request):
     # initialize variables
     prompt = construct_prompt()
-    token_limit = 3000
+    token_limit = 6000
     result = None
-    full_message_history = []
 
+    chat.reset()
     commands.task_completed = False
     commands.final_answer = None
     num_iterations = 0
@@ -151,7 +151,6 @@ def resolve_request(request):
         assistant_reply = chat.chat_with_ai(
                 prompt,
                 request if num_iterations == 0 else '',
-                full_message_history,
                 mem.permanent_memory,
                 mem.code_memory,
                 token_limit, True)
@@ -164,7 +163,7 @@ def resolve_request(request):
             command_name = command_name.strip()
         except Exception as e:
             notes = "Error encountered while trying to parse response: {e}."
-            full_message_history.append(chat.create_chat_message("user", notes))
+            chat.create_chat_message("user", notes)
             print_to_console("Error: \n", Fore.RED, str(e))
 
         if len(command_name) == 0 or command_name == "GetCommandError":
@@ -196,7 +195,7 @@ def resolve_request(request):
 
                 nudge += " Next response should follow RESPONSE FORMAT."
 
-            full_message_history.append(chat.create_chat_message("user", nudge))
+            chat.create_chat_message("user", nudge)
             print_to_console("SYSTEM: ", Fore.YELLOW, f"{command_name} {arguments}")
             print()
             num_iterations += 1
@@ -217,16 +216,15 @@ def resolve_request(request):
         if result is not None:
             if command_result == f"Unknown command {command_name}":
                 nudge = f"{result}. Specify only valid commands."
-                full_message_history.append(chat.create_chat_message("system", nudge))
+                chat.create_chat_message("system", nudge)
             else:
-                full_message_history.append(chat.create_chat_message("system", result))
+                chat.create_chat_message("system", result)
             if len(result) > 100:
                 print_to_console("SYSTEM: ", Fore.YELLOW, result[:100] + "...")
             else:
                 print_to_console("SYSTEM: ", Fore.YELLOW, result)
         else:
-            full_message_history.append(
-                chat.create_chat_message("system", "Unable to execute command"))
+            chat.create_chat_message("system", "Unable to execute command")
             print_to_console("SYSTEM: ", Fore.YELLOW, "Unable to execute command")
 
         print()
