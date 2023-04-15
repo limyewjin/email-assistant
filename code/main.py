@@ -134,23 +134,15 @@ def print_assistant_thoughts(assistant_reply):
 
 def construct_prompt():
     # Construct full prompt
-    full_prompt = f"""Your task is be a helpful assistant to the user, answering questions and fulfilling tasks such as to generate responses that follow the constraints provided by the user. Always try to provide a coherent and relevant answer to the user's question.
-
-If there is a task or requirement which you are not capable of performing precisely, write and use Python code to perform the task, such as counting characters, getting the current date/time, or finding day of a week for a specific date. Python code execution returns stdout and stderr only so **print any output needed** in Python code.
-
-Your decisions must always be made independently without seeking user assistance. Play to your strengths as an LLM and pursue simple strategies.
-
-If the user refers to "weekly snippets" or "todo list", find the appropriate note using the list notes command. Prefer to use notes which read and write to file and reduce clutter in prompt; use permanent memory to store info that need to be present for all sessions.
-
-Remember to confirm that your final answer satisfies ALL requirements specified by the user. Use provided and generated commands to confirm requirements before responding with the final answer."""
+    instructions = prompt_data.load_instructions()
     prompt = prompt_data.load_prompt()
-    full_prompt += f"\n\n{prompt}"
+    full_prompt = f"{instructions}\n\n{prompt}"
     return full_prompt
 
 def resolve_request(request):
     # initialize variables
     prompt = construct_prompt()
-    token_limit = 6000
+    token_limit = 3000
     result = None
     full_message_history = []
 
@@ -283,5 +275,6 @@ while True:
                 if not is_valid_email:
                     continue
 
+                send_email(f"Re: {msg.subject}", "Received request. I'm working on it", msg.text, msg.from_)
                 final_answer = resolve_request(f"Subject: {msg.subject} Body: {msg.text.strip()}")
                 send_email(f"Re: {msg.subject}", final_answer, msg.text, msg.from_)

@@ -4,6 +4,17 @@ from dotenv import load_dotenv
 
 import api
 
+import logging
+import sys
+
+# Configure the logging module to log to both stdout and stderr
+log_format = '%(asctime)s %(levelname)s %(module)s %(funcName)s %(message)s'
+logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
+console = logging.StreamHandler(sys.stderr)
+console.setLevel(logging.ERROR)
+console.setFormatter(logging.Formatter(log_format))
+logging.getLogger('').addHandler(console)
+
 
 def create_chat_message(role, content):
     """
@@ -18,23 +29,31 @@ def create_chat_message(role, content):
 
 
 def optimize_messages(messages):
+    if len(messages) == 0: return []
+
     condensed_messages = []
 
     combined_messages = " ".join([f"{msg['role']}:{msg['content']}" for msg in messages])
 
     # Summarize user and assistant messages together
     summary = api.generate_response([
-        {"role": "system", "content": f"""You are an AI language model trained to understand and generate text based on user input. Your task now is to optimize the conversation by summarizing and condensing the messages received so far, while maintaining the context and crucial information. The original system message is passed to you for context, do not repeat it. Based on your understanding of the conversation, provide a summary message from 'user' role that allows the GPT model to effectively solve the problem."""},
-        {"role": "assistant", "content": combined_messages},
-        {"role": "user", "content": "Summarize the following conversation while maintaining its structure."}],
+        {"role": "system", "content": f"""Your task is to optimize a conversation by summarizing and condensing the messages received so far, while maintaining the context and crucial information. The original system message is passed to you for context, do not repeat it. Based on your understanding of the conversation, provide a concise message for each part of the conversation, excluding the first system prompt, retaining any relevant information needed to answer the user request."""},
+        {"role": "user", "content": f"Conversation so far:```\n{combined_messages}\n```\nSummarize the conversation while maintaining its structure and goal for the assistant."}],
         model="gpt-4")
 
     # Split the summary into separate messages based on their roles
     for message in summary.split("\n"):
-        if message.startswith("User:") or message.startswith("user:"):
-            condensed_messages.append({"role": "user", "content": message[5:].strip()})
-        elif message.startswith("Assistant:") or message.startswith("assistant:"):
-            condensed_messages.append({"role": "assistant", "content": message[10:].strip()})
+        lower_message = message.lower()
+        if lower_message.startswith("user:"):
+            condensed_messages.append({"role": "user", "content": message[len("user:"):].strip()})
+        elif lower_message.startswith("system:"):
+            condensed_messages.append({"role": "system", "content": message[len("system:"):].strip()})
+        elif lower_message.startswith("assistant:"):
+            condensed_messages.append({"role": "assistant", "content": message[len("assistant:"):].strip()})
+
+    if len(condensed_messages) == 0:
+        # it's probably a blob representing what the user said.
+        condensed_messages.append({"role": "user", "content": summary.strip()})
 
     return condensed_messages
 
@@ -65,8 +84,10 @@ def chat_with_ai(
 
         if num_current_context_tokens + num_full_message_history_tokens > token_limit / 2:
             # Optimize the messages using the `optimize_messages` function
+            logging.info("Optimizing conversation as it is getting too long")
             condensed_messages = optimize_messages(full_message_history[:-2])
             current_context.extend(condensed_messages + full_message_history[-2:])
+            logging.info(f"adding this to context: {condensed_messages + full_message_history[-2:]}")
         else:
             current_context.extend(full_message_history)
 
