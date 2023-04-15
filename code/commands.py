@@ -30,10 +30,9 @@ def get_command(response):
 
         return command_name, arguments
     except json.decoder.JSONDecodeError:
-        return "Error:", "Invalid JSON"
-    # All other errors, return "Error: + error message"
+        return "GetCommandError", "Invalid JSON"
     except Exception as e:
-        return "Error:", str(e)
+        return "GetCommandError", str(e)
 
 
 def execute_command(command_name, arguments):
@@ -72,11 +71,53 @@ def execute_command(command_name, arguments):
             return calendar_add_event(arguments["text"], arguments["send_notifications"])
         elif command_name == "task_complete":
             return task_complete(arguments["final_answer"])
+        elif command_name == "list_notes":
+            return list_notes()
+        elif command_name == "write_note":
+            return write_note(arguments["filename"], arguments["content"])
+        elif command_name == "append_note":
+            return append_note(arguments["filename"], arguments["content"])
+        elif command_name == "read_note":
+            return read_note(arguments["filename"])
         else:
             return f"Unknown command {command_name}"
     # All errors, return "Error: + error message"
     except Exception as e:
         return "Error: " + str(e)
+
+def list_notes():
+    try:
+        return os.listdir("./data/notes")
+    except Exception as e:
+        return f"Error listing dir: {e}"
+
+def append_note(key, content):
+    try:
+        with open(f"./data/notes/{key}", "a+") as f:
+            f.write(f"{content}\n")
+    except Exception as e:
+        return f"Error writing: {e}"
+
+    return "OK wrote to file"
+
+
+def write_note(key, content):
+    try:
+        with open(f"./data/notes/{key}", "w+") as f:
+            f.write(f"{content}\n")
+    except Exception as e:
+        return f"Error writing: {e}"
+
+    return "OK wrote to file"
+
+def read_note(key):
+    try:
+        with open(f"./data/notes/{key}", "r") as f:
+            content = f.read().strip()
+    except Exception as e:
+        return f"Error writing: {e}"
+
+    return f"File content: {content}"
 
 def calendar_add_event(text, send_notifications):
     try:
@@ -208,10 +249,14 @@ def delete_memory(key):
         return "Invalid key, cannot delete memory."
 
 def load_memory():
-    with open("./data/memory.txt", "r") as f:
-        data = f.read()
-        mem.permanent_memory = json.loads(data)
+    memory_path = "./data/memory.txt"
+    if os.path.isfile(memory_path):
+        with open(memory_path, "r") as f:
+            data = f.read()
+            mem.permanent_memory = json.loads(data)
+        return "Loaded memory from file"
 
+    return f"No memory file found. Current memory: {mem.permanent_memory}"
 
 def task_complete(answer):
     global task_completed, final_answer

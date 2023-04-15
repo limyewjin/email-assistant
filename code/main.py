@@ -134,11 +134,13 @@ def print_assistant_thoughts(assistant_reply):
 
 def construct_prompt():
     # Construct full prompt
-    full_prompt = f"""Your task is be a helpful assistant to the user, answering questions and fulfilling tasks such as to generate responses that follow the constraints provided by the user. You receive requests via email so expect threaded input. Always try to provide a coherent and relevant answer to the user's question.
+    full_prompt = f"""Your task is be a helpful assistant to the user, answering questions and fulfilling tasks such as to generate responses that follow the constraints provided by the user. Always try to provide a coherent and relevant answer to the user's question.
 
 If there is a task or requirement which you are not capable of performing precisely, write and use Python code to perform the task, such as counting characters, getting the current date/time, or finding day of a week for a specific date. Python code execution returns stdout and stderr only so **print any output needed** in Python code.
 
-Your decisions must always be made independently without seeking user assistance. Play to your strengths as an LLM and pursue simple strategies. Store info in memory when asked explicitly to, or if the user tells you something personal - for example, their dietary preferences or their vacation days.
+Your decisions must always be made independently without seeking user assistance. Play to your strengths as an LLM and pursue simple strategies.
+
+If the user refers to "weekly snippets" or "todo list", find the appropriate note using the list notes command. Prefer to use notes which read and write to file and reduce clutter in prompt; use permanent memory to store info that need to be present for all sessions.
 
 Remember to confirm that your final answer satisfies ALL requirements specified by the user. Use provided and generated commands to confirm requirements before responding with the final answer."""
     prompt = prompt_data.load_prompt()
@@ -166,6 +168,7 @@ def resolve_request(request):
         print_assistant_thoughts(assistant_reply)
 
         # Get command name and arguments
+        command_name = ""
         try:
             command_name, arguments = commands.get_command(assistant_reply)
             command_name = command_name.strip()
@@ -174,22 +177,37 @@ def resolve_request(request):
             full_message_history.append(chat.create_chat_message("user", notes))
             print_to_console("Error: \n", Fore.RED, str(e))
 
-        if command_name == "Error:" and arguments == "Invalid JSON":
-            notes = "Invalid JSON response. Your next response should be in RESPONSE FORMAT and valid JSON."
-            if '"command"' not in assistant_reply and '"thoughts"' not in assistant_reply:
-                notes += ' Respond with the right response format. Fix that.'
-            elif '"command"' not in assistant_reply:
-                notes += ' "command" JSON is missing from response. Fix that.'
-            elif '"thoughts"' not in assistant_reply:
-                notes += ' "thoughts" JSON is missing from response. Fix that.'
+        if len(command_name) == 0 or command_name == "GetCommandError":
+            print(f"'{command_name}', '{arguments}'")
+            nudge = ""
+            if len(command_name) == 0:
+                nudge = "Empty command name found. Specify a valid command."
 
-            if '"command"' in assistant_reply and '"thoughts"' in assistant_reply:
-                if assistant_reply.count('"command"') > 1 and assistant_reply.count('"thoughts"') > 1:
-                    notes += ' It looks like you have multiple commands in last response. Return just one.'
-                else:
-                    notes += ' Extranous text found in response that makes response invalid JSON. Fix that.'
+            if command_name == "GetCommandError":
+                if arguments == "'command'":
+                    nudge = '"command" not found in response.'
+                elif arguments == "'name'":
+                    nudge = '"command" does not contain "name" and it cannot be empty.'
+                elif arguments == "'args'":
+                    nudge = '"command" does not contain "args".'
+                elif arguments == "Invalid JSON":
+                    nudge = "Invalid JSON response."
+                    if '"command"' not in assistant_reply and '"thoughts"' not in assistant_reply:
+                        nudge += ' "command" and "thoughts" not found in response.'
+                    elif '"command"' not in assistant_reply:
+                        nudge += ' "command" not found in response.'
+                    elif '"thoughts"' not in assistant_reply:
+                        nudge += ' "thoughts" not found in response.'
 
-            full_message_history.append(chat.create_chat_message("user", notes))
+                    if '"command"' in assistant_reply and '"thoughts"' in assistant_reply:
+                        if assistant_reply.count('"command"') > 1 and assistant_reply.count('"thoughts"') > 1:
+                            nudge += ' Multiple "command" and "thoughts" found. Return just one set.'
+                        else:
+                            nudge += ' Extranous text found in response that makes response invalid JSON.'
+
+                nudge += " Next response should follow RESPONSE FORMAT."
+
+            full_message_history.append(chat.create_chat_message("user", nudge))
             print_to_console("SYSTEM: ", Fore.YELLOW, f"{command_name} {arguments}")
             print()
             num_iterations += 1
@@ -202,28 +220,15 @@ def resolve_request(request):
             f"COMMAND = {Fore.CYAN}{command_name}{Style.RESET_ALL}  ARGUMENTS = {Fore.CYAN}{arguments}{Style.RESET_ALL}")
 
         # Exectute command
-        if command_name.lower() != "error":
-            command_result = commands.execute_command(command_name, arguments)
-            result = f"Command {command_name} returned: {command_result}"
-        else:
-            result = f"Command {command_name} threw the following error: {arguments}"
+        command_result = commands.execute_command(command_name, arguments)
+        result = f"Command {command_name} returned: {command_result}"
 
         # Check if there's a result from the command append it to the message
         # history
         if result is not None:
             if command_result == f"Unknown command {command_name}":
-                notes = f"{result}."
-                if '"command"' not in assistant_reply and '"thoughts"' not in assistant_reply:
-                    notes += ' "command" and "thoughts" components not found in last response. Fix that.'
-                elif '"command"' not in assistant_reply:
-                    notes += ' "command" component is missing from last response. Fix that.'
-                elif '"thoughts"' not in assistant_reply:
-                    notes += ' "thoughts" component is missing from last response. Fix that.'
-                elif command_name.strip() == 'Error:':
-                    notes += ' command name is empty. Fix that by adding a command to run.'
-                else:
-                    notes += ' Do not issue unspecified commands.'
-                full_message_history.append(chat.create_chat_message("system", notes))
+                nudge = f"{result}. Specify only valid commands."
+                full_message_history.append(chat.create_chat_message("system", nudge))
             else:
                 full_message_history.append(chat.create_chat_message("system", result))
             if len(result) > 100:
@@ -254,15 +259,29 @@ while True:
     with MailBox(imap_server).login(email_user, email_password, 'INBOX') as mailbox:
         msgs = [msg for msg in mailbox.fetch(A(seen=False, date_gte=date_gte_criteria))]
         if len(msgs) == 0:
-            responses = mailbox.idle.wait(timeout=TIMEOUT)
-            if responses:
-                msgs = [msg for msg in mailbox.fetch(A(seen=False, date_gte=date_gte_criteria))]
+            try:
+                responses = mailbox.idle.wait(timeout=TIMEOUT)
+                if responses:
+                    msgs = [msg for msg in mailbox.fetch(A(seen=False, date_gte=date_gte_criteria))]
+            except Exception as e:
+                logging.error(f"Exception {e}")
+                continue
         if len(msgs) > 0:
             for msg in msgs:
                 if msg.from_ not in expected_senders: continue
 
+                # Check the "Received" headers for additional security
+                received_headers = msg.headers.get('received', [])
+                is_valid_email = False
+                for received_header in received_headers:
+                    # check if the header contains a trusted domain
+                    if 'google.com' in received_header:
+                        is_valid_email = True
+                        break
+
+                # Skip if the email is not valid based on the "Received" headers
+                if not is_valid_email:
+                    continue
+
                 final_answer = resolve_request(f"Subject: {msg.subject} Body: {msg.text.strip()}")
                 send_email(f"Re: {msg.subject}", final_answer, msg.text, msg.from_)
-
-                #print(msg.date, msg.subject, msg.text)
-                #send_email(f"Re: {msg.subject}", "test back", msg.text)
