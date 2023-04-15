@@ -23,7 +23,7 @@ def reset():
     full_message_history = []
     working_message_history = []
 
-def create_chat_message(role, content):
+def create_chat_message(role, content, add_to_history=True):
     """
     Create a chat message with the given role and content.
     Args:
@@ -35,8 +35,10 @@ def create_chat_message(role, content):
     global full_message_history, working_message_history
 
     message = {"role": role, "content": content}
-    full_message_history.append(message)
-    working_message_history.append(message)
+    if add_to_history:
+        full_message_history.append(message)
+        working_message_history.append(message)
+    return message
 
 
 def optimize_messages(messages):
@@ -85,9 +87,9 @@ def chat_with_ai(
             }
             for key in code_memory }
     current_context = [
-            create_chat_message("system", prompt),
-            create_chat_message("system", f"Permanent memory: {permanent_memory}"),
-            create_chat_message("system", f"Code memory: {code_memory_short}"),
+            create_chat_message("system", prompt, False),
+            create_chat_message("system", f"Permanent memory: {permanent_memory}", False),
+            create_chat_message("system", f"Code memory: {code_memory_short}", False),
             ]
 
     num_current_context_tokens = sum(len(msg["content"].split()) for msg in current_context) + len(prompt.split())
@@ -99,10 +101,11 @@ def chat_with_ai(
         condensed_messages = optimize_messages(full_message_history[:-2])
         working_message_history = condensed_messages + full_message_history[-2:]
         logging.info(f"adding this to context: {condensed_messages + full_message_history[-2:]}")
-    current_context.extend(working_message_history)
 
     if len(user_input.strip()) > 0:
-        current_context.extend([create_chat_message("user", user_input)])
+        create_chat_message("user", user_input)
+
+    current_context.extend(working_message_history)
 
     # Debug print the current context
     if debug:
@@ -117,6 +120,5 @@ def chat_with_ai(
     assistant_reply = api.generate_response(current_context, model="gpt-4").strip()
 
     # Update message history
-    if len(user_input.strip()) > 0: create_chat_message("user", user_input)
     create_chat_message("assistant", assistant_reply)
     return assistant_reply
