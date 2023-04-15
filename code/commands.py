@@ -122,7 +122,7 @@ def read_note(key):
 def calendar_add_event(text, send_notifications):
     try:
         send_updates = 'all' if send_notifications.lower() == "true" else 'none'
-        calendar = GoogleCalendar('limyewjin@gmail.com')
+        calendar = GoogleCalendar(os.environ["CALENDAR_USER"], os.environ["CALENDAR_TOKEN_PATH"])
         calendar.add_quick_event(text, send_updates=send_updates)
     except Exception as e:
         return f"Error adding: {e}"
@@ -132,7 +132,7 @@ def calendar_add_event(text, send_notifications):
 
 def calendar_get_events(time_min, time_max):
     try:
-        calendar = GoogleCalendar('limyewjin@gmail.com')
+        calendar = GoogleCalendar(os.environ["CALENDAR_USER"], os.environ["CALENDAR_TOKEN_PATH"])
         events = calendar.get_events(time_min=time_min, time_max=time_max, single_events=True)
     except Exception as e:
         return f"Error getting event: {e}"
@@ -142,7 +142,7 @@ def calendar_get_events(time_min, time_max):
 
 def calendar_delete_event(event_id):
     try:
-        calendar = GoogleCalendar('limyewjin@gmail.com')
+        calendar = GoogleCalendar(os.environ["CALENDAR_USER"], os.environ["CALENDAR_TOKEN_PATH"])
         calendar.delete_event(event_id)
     except Exception as e:
         return f"Error deleting: {e}"

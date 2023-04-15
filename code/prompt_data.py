@@ -1,9 +1,16 @@
-def load_prompt():
+def load_file(filename):
     try:
-        with open("./data/prompt.txt", "r") as prompt_file:
+        with open(filename, "r") as prompt_file:
             prompt = prompt_file.read()
-        return prompt
+        return prompt.strip()
 
     except FileNotFoundError:
-        print("Error: Prompt file not found", flush=True)
+        print(f"Error: Prompt file {filename} not found", flush=True)
         return""
+
+
+def load_prompt():
+    return load_file("./data/prompt.txt")
+
+def load_instructions():
+    return load_file("./data/instructions.txt")
