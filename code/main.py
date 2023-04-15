@@ -46,8 +46,6 @@ TIMEOUT = 60 * 10
 
 commands.load_memory()
 
-logging.info("Done initializing. Now looping.")
-
 
 def send_email(subject, body, original_msg, recipient, sender=email_user, password=email_password):
     #msg = MIMEText(body)
@@ -170,14 +168,13 @@ def resolve_request(request):
             print_to_console("Error: \n", Fore.RED, str(e))
 
         if len(command_name) == 0 or command_name == "GetCommandError":
-            print(f"'{command_name}', '{arguments}'")
             nudge = ""
             if len(command_name) == 0:
                 nudge = "Empty command name found. Specify a valid command."
 
             if command_name == "GetCommandError":
                 if arguments == "'command'":
-                    nudge = '"command" not found in response.'
+                    nudge = '"command" not found in response. It cannot be empty.'
                 elif arguments == "'name'":
                     nudge = '"command" does not contain "name" and it cannot be empty.'
                 elif arguments == "'args'":
@@ -241,40 +238,43 @@ def resolve_request(request):
 
     return result
 
+with MailBox(imap_server).login(email_user, email_password, 'INBOX') as mailbox:
+    logging.info("Login to email confirmed")
+
+logging.info("Done initializing. Now looping.")
 
 # Loop indefinitely and check for new emails as they arrive, or handle the user-set alarm
 while True:
     sixty_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=60)
     date_gte_criteria = sixty_minutes_ago.date()
 
-    # waiting for updates TIMEOUT sec, print unseen immediately if any update
-    with MailBox(imap_server).login(email_user, email_password, 'INBOX') as mailbox:
-        msgs = [msg for msg in mailbox.fetch(A(seen=False, date_gte=date_gte_criteria))]
-        if len(msgs) == 0:
-            try:
-                responses = mailbox.idle.wait(timeout=TIMEOUT)
-                if responses:
-                    msgs = [msg for msg in mailbox.fetch(A(seen=False, date_gte=date_gte_criteria))]
-            except Exception as e:
-                logging.error(f"Exception {e}")
-                continue
-        if len(msgs) > 0:
-            for msg in msgs:
-                if msg.from_ not in expected_senders: continue
+    try:
+        # waiting for updates TIMEOUT sec, print unseen immediately if any update
+        with MailBox(imap_server).login(email_user, email_password, 'INBOX') as mailbox:
+            msgs = [msg for msg in mailbox.fetch(A(seen=False, date_gte=date_gte_criteria))]
+            if len(msgs) == 0:
+                    responses = mailbox.idle.wait(timeout=TIMEOUT)
+                    if responses:
+                        msgs = [msg for msg in mailbox.fetch(A(seen=False, date_gte=date_gte_criteria))]
+            if len(msgs) > 0:
+                for msg in msgs:
+                    if msg.from_ not in expected_senders: continue
 
-                # Check the "Received" headers for additional security
-                received_headers = msg.headers.get('received', [])
-                is_valid_email = False
-                for received_header in received_headers:
-                    # check if the header contains a trusted domain
-                    if 'google.com' in received_header:
-                        is_valid_email = True
-                        break
+                    # Check the "Received" headers for additional security
+                    received_headers = msg.headers.get('received', [])
+                    is_valid_email = False
+                    for received_header in received_headers:
+                        # check if the header contains a trusted domain
+                        if 'google.com' in received_header:
+                            is_valid_email = True
+                            break
 
-                # Skip if the email is not valid based on the "Received" headers
-                if not is_valid_email:
-                    continue
+                    # Skip if the email is not valid based on the "Received" headers
+                    if not is_valid_email:
+                        continue
 
-                send_email(f"Re: {msg.subject}", "Received request. I'm working on it", msg.text, msg.from_)
-                final_answer = resolve_request(f"Subject: {msg.subject} Body: {msg.text.strip()}")
-                send_email(f"Re: {msg.subject}", final_answer, msg.text, msg.from_)
+                    send_email(f"Re: {msg.subject}", "Received request. I'm working on it", msg.text, msg.from_)
+                    final_answer = resolve_request(f"Subject: {msg.subject} Body: {msg.text.strip()}")
+                    send_email(f"Re: {msg.subject}", final_answer, msg.text, msg.from_)
+    except Exception as e:
+        logging.error(f"Exception {e}")
