@@ -35,7 +35,7 @@ EMAIL_USER=your_bot_email@example.com
 EMAIL_PASSWORD=your_bot_email_password
 EXPECTED_SENDERS=user1@example.com,user2@example.com
 CALENDAR_USER=user@gmail.com
-CALENDAR_TOKEN_PATH=~/.credentials/token.pickle
+CALENDAR_TOKEN_PATH=/home/user/.credentials/token.pickle
 ```
 
 ## Running
