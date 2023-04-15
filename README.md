@@ -23,6 +23,8 @@ To set up environment variables for the project, rename the `sample_env` file to
 * `EMAIL_USER`: The email address of your bot.
 * `EMAIL_PASSWORD`: The API key or password for your bot's email account.
 * `EXPECTED_SENDERS`: A comma-separated list of email addresses that are allowed to send commands to the bot.
+* `CALENDAR_USER`: The google calendar user.
+* `CALENDAR_TOKEN_PICKLE`: File location of token pickle from Google Calendar install above.
 
 Example:
 
@@ -32,6 +34,8 @@ SERPER_API_KEY=your_serper_key
 EMAIL_USER=your_bot_email@example.com
 EMAIL_PASSWORD=your_bot_email_password
 EXPECTED_SENDERS=user1@example.com,user2@example.com
+CALENDAR_USER=user@gmail.com
+CALENDAR_TOKEN_PATH=~/.credentials/token.pickle
 ```
 
 ## Running
