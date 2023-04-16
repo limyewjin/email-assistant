@@ -19,7 +19,7 @@ pip install -r requirements.txt
 To set up environment variables for the project, rename the `sample_env` file to `.env` and fill in the necessary information. Here's a description of each variable:
 
 * `OPENAI_API_KEY`: Your OpenAI API key for the GPT-4 model.
-* `SERPER_API_KEY`: Your Serpstack API key for search functionality.
+* `SERPER_API_KEY`: Your [serper.dev](https://serper.dev/) API key for search functionality.
 * `EMAIL_USER`: The email address of your bot.
 * `EMAIL_PASSWORD`: The API key or password for your bot's email account. For GMail, get an [app password](https://support.google.com/accounts/answer/185833?hl=en)
 * `EXPECTED_SENDERS`: A comma-separated list of email addresses that are allowed to send commands to the bot.
