@@ -191,7 +191,7 @@ def resolve_request(request):
                         if assistant_reply.count('"command"') > 1 and assistant_reply.count('"thoughts"') > 1:
                             nudge += ' Multiple "command" and "thoughts" found. Return just one set.'
                         else:
-                            nudge += ' Extranous text found in response that makes response invalid JSON.'
+                            nudge += ' Extranous text found in response that makes response invalid JSON. Remove extra text and just return JSON response.'
 
                 nudge += " Next response should follow RESPONSE FORMAT."
 
