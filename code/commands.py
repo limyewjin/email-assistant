@@ -154,7 +154,8 @@ def calendar_get_single_event(event_id):
     try:
         calendar = GoogleCalendar(os.environ["CALENDAR_USER"], token_path=os.environ["CALENDAR_TOKEN_PATH"])
         event = calendar.get_event(event_id)
-        return repr(event)
+        event_str = str(event).replace(" - ", " - title: '")
+        return f"{event_str}' location: '{event.location}' description: '{event.description}' attendees: '{event.attendees}' recurrence: '{event.recurrence}'"
     except Exception as e:
         return f"Error getting event: {e}"
 
