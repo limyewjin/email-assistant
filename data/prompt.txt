@@ -11,22 +11,21 @@ COMMANDS:
 4. Memory Add: "memory_add", args: "key": "<key>", "string": "<string>"
 5. Memory Delete: "memory_del", args: "key": "<key>"
 6. Browse Website: "browse_website", args: "url": "<url>"
-7. Website Summary: "website_summary", args: "url": "<url>"
-8. Get Text Summary: "get_text_summary", args: "text": "<text>", "hint": "<topic hint>"
-9. Count words: "count_words", args: "text": "<text>"
-10. Get current date time: "get_datetime", args:
-11. Get calendar events: "calendar_get_events", args: "time_min": "<arg - isoformat string of starting datetime, use this to help filter number of events retrieved>", "time_max": "<optional arg - isoformat string of ending datetime>"
-12. Add calendar event: "calendar_add_event", args: "text": "<Event based on text string - Example: 'Appointment at Somewhere on June 3rd 10am-10:25am'>", "send_notifications": "<boolean:true/false>"
-13. Delete calendar event: "calendar_delete_event", args: "event_id": "<event_id>"
-14. List notes: "list_notes", args:
-15. Write to note: "write_note", args: "filename": "<filename>", "content": "<content>"
-16. Append to note: "append_note", args: "filename": "<filename>", "content": "<content>"
-17. Read note: "read_note", args: "filename": "<filename>"
-18. Task Complete: "task_complete", args: "final_answer": "<final_answer>"
+7. Get current date time: "get_datetime", args:
+8. Get calendar events: "calendar_get_events", args: "time_min": "<arg - isoformat string>", "time_max": "<optional arg - isoformat string>"
+9. Get single calendar event: "calendar_get_single_event", args: "event_id": "<event_id>"
+10. Update calendar event: "calendar_update_event", args: "event_id": "<event_id>", "start": "<optional arg - isoformat string>", "end": "<optional arg - isoformat string>", "location": "<optional arg - location str>", "description": "<optional arg - description str>", "send_notifications": "<boolean:true/false>"
+11. Add calendar event: "calendar_add_event", args: "text": "<Event based on text string - Example: 'Appointment at Somewhere on June 3rd 10am-10:25am'>", "send_notifications": "<boolean:true/false>"
+12. Delete calendar event: "calendar_delete_event", args: "event_id": "<event_id>"
+13. List notes: "list_notes", args:
+14. Write to note: "write_note", args: "filename": "<filename>", "content": "<content>"
+15. Append to note: "append_note", args: "filename": "<filename>", "content": "<content>"
+16. Read note: "read_note", args: "filename": "<filename>"
+17. Task Complete: "task_complete", args: "final_answer": "<final_answer>"
 
 RESOURCES:
 
-1. Long Term memory management.
+1. Long Term memory management and ability to write notes to file system.
 2. Internet access for searches and information gathering.
 3. Ability to write and store python code to execute later.
 

@@ -67,6 +67,15 @@ def execute_command(command_name, arguments):
             time_min = datetime.datetime.fromisoformat(arguments["time_min"]) if "time_min" in arguments and arguments["time_min"] != "" else None
             time_max = datetime.datetime.fromisoformat(arguments["time_max"]) if "time_max" in arguments and arguments["time_max"] != "" else None
             return calendar_get_events(time_min, time_max)
+        elif command_name == "calendar_get_single_event":
+            return calendar_get_single_event(arguments["event_id"])
+        elif command_name == "calendar_update_event":
+            if "send_notifications" not in arguments: arguments["send_notifications"] = ""
+            if "location" not in arguments: arguments["location"] = ""
+            if "description" not in arguments: arguments["description"] = ""
+            if "start" not in arguments: arguments["start"] = ""
+            if "end" not in arguments: arguments["end"] = ""
+            return calendar_update_event(arguments["event_id"], arguments["send_notifications"], arguments["start"], arguments["end"], arguments["location"], arguments["description"])
         elif command_name == "calendar_add_event":
             return calendar_add_event(arguments["text"], arguments["send_notifications"])
         elif command_name == "task_complete":
@@ -119,6 +128,39 @@ def read_note(key):
 
     return f"File content: {content}"
 
+
+def calendar_update_event(event_id, send_notifications, start, end, location, description):
+    try:
+        calendar = GoogleCalendar(os.environ["CALENDAR_USER"], token_path=os.environ["CALENDAR_TOKEN_PATH"])
+        event = calendar.get_event(event_id)
+        send_updates = 'all' if send_notifications.lower() == "true" else 'none'
+        if len(start.strip()) != 0:
+            event.start = datetime.datetime.fromisoformat(start)
+        if len(end.strip()) != 0:
+            event.end = datetime.datetime.fromisoformat(end)
+        if len(location.strip()) != 0:
+            event.location = location.strip()
+        if len(description.strip()) != 0:
+            event.description= description.strip()
+
+        calendar.update_event(event, send_updates=send_updates)
+    except Exception as e:
+        return f"Error updating event: {e}"
+
+    return "OK - updated event"
+
+
+def calendar_get_single_event(event_id):
+    try:
+        calendar = GoogleCalendar(os.environ["CALENDAR_USER"], token_path=os.environ["CALENDAR_TOKEN_PATH"])
+        event = calendar.get_event(event_id)
+        return repr(event)
+    except Exception as e:
+        return f"Error getting event: {e}"
+
+    return "Unused"
+
+
 def calendar_add_event(text, send_notifications):
     try:
         send_updates = 'all' if send_notifications.lower() == "true" else 'none'
@@ -134,11 +176,15 @@ def calendar_get_events(time_min, time_max):
     try:
         calendar = GoogleCalendar(os.environ["CALENDAR_USER"], token_path=os.environ["CALENDAR_TOKEN_PATH"])
         events = calendar.get_events(time_min=time_min, time_max=time_max, single_events=True)
+        results = []
+        for event in events:
+            event_str = str(event).replace(" - ", " - title: '")
+            results.append(f"{event_str}' id: '{event.id}'")
+        return '\n'.join(results)
     except Exception as e:
         return f"Error getting event: {e}"
 
-    return '\n'.join([f"{event} id:'{event.id}'" for event in events])
-
+    return "Unused"
 
 def calendar_delete_event(event_id):
     try:
