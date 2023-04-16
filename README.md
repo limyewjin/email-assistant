@@ -14,6 +14,10 @@ pip install -r requirements.txt
 
 2. Follow the instructions at Google Calendar Simple API [Getting Started](https://google-calendar-simple-api.readthedocs.io/en/latest/getting_started.html) to set up the Google Calendar API credentials. Copy the credentials to `~/.credentials`
 
+3. Set up an email account for your bot which you will use to email to and the bot will monitor. I used Gmail and got an [app password](https://support.google.com/accounts/answer/185833?hl=en).
+
+4. Set up a [serper.dev](https://serper.dev/) account to provide Search.
+
 ## Environment Variables
 
 To set up environment variables for the project, rename the `sample_env` file to `.env` and fill in the necessary information. Here's a description of each variable:
@@ -21,7 +25,7 @@ To set up environment variables for the project, rename the `sample_env` file to
 * `OPENAI_API_KEY`: Your OpenAI API key for the GPT-4 model.
 * `SERPER_API_KEY`: Your [serper.dev](https://serper.dev/) API key for search functionality.
 * `EMAIL_USER`: The email address of your bot.
-* `EMAIL_PASSWORD`: The API key or password for your bot's email account. For GMail, get an [app password](https://support.google.com/accounts/answer/185833?hl=en)
+* `EMAIL_PASSWORD`: The API key or password for your bot's email account.
 * `EXPECTED_SENDERS`: A comma-separated list of email addresses that are allowed to send commands to the bot.
 * `CALENDAR_USER`: The google calendar user.
 * `CALENDAR_TOKEN_PICKLE`: File location of token pickle from Google Calendar install above.
