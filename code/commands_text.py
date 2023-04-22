@@ -1,3 +1,4 @@
+import datetime
 import urllib.request
 import fitz
 import re
@@ -25,8 +26,33 @@ console.setFormatter(logging.Formatter(log_format))
 logging.getLogger('').addHandler(console)
 
 
+from urllib.parse import urlparse
+
+def is_valid_url(url):
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
+
+import magic
+
+def is_pdf(file_path):
+    mime_type = magic.from_file(file_path, mime=True)
+    return mime_type == 'application/pdf'
+
+
 def download_pdf(url, output_path):
     urllib.request.urlretrieve(url, output_path)
+
+
+def download_url(url, output_path):
+    if is_pdf:
+        download_pdf(url, output_path)
+    else:
+        text = scrape_text(url)
+        with open(output_path, "w") as f:
+            f.write(text)
 
 
 def preprocess(text):
@@ -166,15 +192,22 @@ class SemanticSearch:
 # The modified function generates embeddings based on PDF file name and page number and checks if the embeddings file exists before loading or generating it.	
 recommender = SemanticSearch()
 
-def load_recommender(path, start_page=1):
+def load_recommender(path, start_page=1, load_embedding=False):
     global recommender
-    pdf_file = os.path.basename(path)
-    embeddings_file = f"{pdf_file}_{start_page}.npy"
+    file = os.path.basename(path)
+    embeddings_file = f"{file}_{start_page}.npy"
     
-    if os.path.isfile(embeddings_file):
+    if load_embedding and os.path.isfile(embeddings_file):
         logging.info(f"Loading Embeddings: {embeddings_file}")
-        texts = pdf_to_text(path, start_page=start_page)
-        chunks = text_to_chunks(texts, start_page=start_page)
+
+        if is_pdf(path):
+            texts = pdf_to_text(path, start_page=start_page)
+            chunks = text_to_chunks(texts, start_page=start_page)
+        else:
+            with open(path, "r") as f:
+                texts = f.read()
+            chunks = texts.split("\n")
+
         recommender.data = chunks
         embeddings = np.load(embeddings_file)
         recommender.embeddings = embeddings
@@ -182,8 +215,15 @@ def load_recommender(path, start_page=1):
         return "Embeddings loaded from file"
     
     logging.info(f"Creating Embeddings: {embeddings_file}")
-    texts = pdf_to_text(path, start_page=start_page)
-    chunks = text_to_chunks(texts, start_page=start_page)
+
+    if is_pdf(path):
+        texts = pdf_to_text(path, start_page=start_page)
+        chunks = text_to_chunks(texts, start_page=start_page)
+    else:
+        with open(path, "r") as f:
+            texts = f.read()
+        chunks = texts.split("\n")
+
     recommender.fit(chunks)
     np.save(embeddings_file, recommender.embeddings)
     return 'Corpus Loaded.'
@@ -211,12 +251,17 @@ def generate_answer(question):
 
 
 def hash_url_to_filename(url):
-    # Encode the URL as a bytes object
-    url_bytes = url.encode('utf-8')
+    # Get the current date and hour
+    now = datetime.datetime.now()
+    date_str = now.strftime('%Y-%m-%d-%H')
 
-    # Compute the SHA-256 hash of the URL bytes
+    # Encode the URL and date as bytes objects
+    url_bytes = url.encode('utf-8')
+    date_bytes = date_str.encode('utf-8')
+
+    # Compute the SHA-256 hash of the concatenated bytes
     sha256 = hashlib.sha256()
-    sha256.update(url_bytes)
+    sha256.update(url_bytes + date_bytes)
     hash_bytes = sha256.digest()
 
     # Convert the hash bytes to a hexadecimal string
@@ -226,11 +271,28 @@ def hash_url_to_filename(url):
     return hash_string[:20]
 
 
-def question_answer_pdf(url, question):
-    hash_filename = hash_url_to_filename(url)
-    logging.info(f"Hashing {url} to {hash_filename}")
-    download_pdf(url, hash_filename)
-    load_recommender(hash_filename)
+def question_answer(url_or_filename, question):
+    if is_valid_url(url_or_filename):
+        logging.info(f"{url_or_filename} is a valid URL")
+
+        directory_path = "./data/hash/"
+        if not os.path.exists(directory_path):
+            try:
+                os.makedirs(directory_path)
+                print(f"Successfully created directory '{directory_path}'")
+            except OSError as e:
+                print(f"Error creating directory '{directory_path}': {e}")
+
+        hash_file = f"{directory_path}{hash_url_to_filename(url_or_filename)}"
+        logging.info(f"Hashing {url_or_filename} to {hash_file}")
+
+        url = url_or_filename
+        download_url(url, hash_file)
+
+        load_recommender(hash_file, load_embedding=True)
+    else:
+        filename = url_or_filename
+        load_recommender(filename, load_embedding=False)
 
     prompt = generate_answer(question)
 

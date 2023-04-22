@@ -11,7 +11,7 @@ COMMANDS:
 4. Memory Add: "memory_add", args: "key": "<key>", "string": "<string>"
 5. Memory Delete: "memory_del", args: "key": "<key>"
 6. Browse Website: "browse_website", args: "url": "<url>"
-7. Q&A PDF: "question_answer_pdf", args: "url": "<url>", "question": "<question>"
+7. Q&A including PDFs: "question_answer", args: "url_or_filename": "<url_or_filename>", "question": "<question>"
 8. Get current date time: "get_datetime", args:
 9. Get calendar events: "calendar_get_events", args: "time_min": "<arg - isoformat string>", "time_max": "<optional arg - isoformat string>"
 10. Get single calendar event: "calendar_get_single_event", args: "event_id": "<event_id>"
