@@ -2,3 +2,9 @@ python-dotenv
 imap-tools
 colorama
 gcsa
+PyMuPDF
+numpy
+scikit-learn
+tensorflow
+tensorflow-hub
+openai

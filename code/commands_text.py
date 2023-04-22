@@ -1,7 +1,58 @@
+import urllib.request
+import fitz
+import re
+import numpy as np
+import tensorflow_hub as hub
+import os
+from sklearn.neighbors import NearestNeighbors
+
+import hashlib
+
 import requests
 from bs4 import BeautifulSoup
 
 import api
+
+
+import logging
+import sys
+# Configure the logging module to log to both stdout and stderr
+log_format = '%(asctime)s %(levelname)s %(module)s:%(lineno)d %(funcName)s %(message)s'
+logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
+console = logging.StreamHandler(sys.stderr)
+console.setLevel(logging.ERROR)
+console.setFormatter(logging.Formatter(log_format))
+logging.getLogger('').addHandler(console)
+
+
+def download_pdf(url, output_path):
+    urllib.request.urlretrieve(url, output_path)
+
+
+def preprocess(text):
+    text = text.replace('\n', ' ')
+    text = re.sub('\s+', ' ', text)
+    return text
+
+
+def pdf_to_text(path, start_page=1, end_page=None):
+    doc = fitz.open(path)
+    total_pages = doc.page_count
+
+    if end_page is None:
+        end_page = total_pages
+
+    text_list = []
+
+    for i in range(start_page-1, end_page):
+        text = doc.load_page(i).get_text("text")
+        text = preprocess(text)
+        text_list.append(text)
+
+    doc.close()
+    return text_list
+
+
 
 def scrape_text(url):
     response = requests.get(url)
@@ -52,6 +103,138 @@ def scrape_links(url):
     hyperlinks = extract_hyperlinks(soup)
 
     return format_hyperlinks(hyperlinks)
+
+
+def text_to_chunks(texts, word_length=150, start_page=1):
+    text_toks = [t.split(' ') for t in texts]
+    page_nums = []
+    chunks = []
+
+    for idx, words in enumerate(text_toks):
+        for i in range(0, len(words), word_length):
+            chunk = words[i:i+word_length]
+            if (i+word_length) > len(words) and (len(chunk) < word_length) and (
+                len(text_toks) != (idx+1)):
+                text_toks[idx+1] = chunk + text_toks[idx+1]
+                continue
+            chunk = ' '.join(chunk).strip()
+            chunk = f'[{idx+start_page}]' + ' ' + '"' + chunk + '"'
+            chunks.append(chunk)
+    return chunks
+
+
+class SemanticSearch:
+    
+    def __init__(self):
+        self.use = hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')
+        self.fitted = False
+    
+    
+    def init_fit(self, batch=1000, n_neighbors=5):
+        n_neighbors = min(n_neighbors, len(self.embeddings))
+        self.nn = NearestNeighbors(n_neighbors=n_neighbors)
+        self.nn.fit(self.embeddings)
+        self.fitted = True
+
+
+    def fit(self, data, batch=1000, n_neighbors=5):
+        self.data = data
+        self.embeddings = self.get_text_embedding(data, batch=batch)
+        self.init_fit(batch, n_neighbors)
+    
+    
+    def __call__(self, text, return_data=True):
+        inp_emb = self.use([text])
+        neighbors = self.nn.kneighbors(inp_emb, return_distance=False)[0]
+        
+        if return_data:
+            return [self.data[i] for i in neighbors]
+        else:
+            return neighbors
+    
+    
+    def get_text_embedding(self, texts, batch=1000):
+        embeddings = []
+        for i in range(0, len(texts), batch):
+            text_batch = texts[i:(i+batch)]
+            emb_batch = self.use(text_batch)
+            embeddings.append(emb_batch)
+        embeddings = np.vstack(embeddings)
+        return embeddings
+
+
+# The modified function generates embeddings based on PDF file name and page number and checks if the embeddings file exists before loading or generating it.	
+recommender = SemanticSearch()
+
+def load_recommender(path, start_page=1):
+    global recommender
+    pdf_file = os.path.basename(path)
+    embeddings_file = f"{pdf_file}_{start_page}.npy"
+    
+    if os.path.isfile(embeddings_file):
+        logging.info(f"Loading Embeddings: {embeddings_file}")
+        texts = pdf_to_text(path, start_page=start_page)
+        chunks = text_to_chunks(texts, start_page=start_page)
+        recommender.data = chunks
+        embeddings = np.load(embeddings_file)
+        recommender.embeddings = embeddings
+        recommender.init_fit()
+        return "Embeddings loaded from file"
+    
+    logging.info(f"Creating Embeddings: {embeddings_file}")
+    texts = pdf_to_text(path, start_page=start_page)
+    chunks = text_to_chunks(texts, start_page=start_page)
+    recommender.fit(chunks)
+    np.save(embeddings_file, recommender.embeddings)
+    return 'Corpus Loaded.'
+
+
+def generate_answer(question):
+    global recommender
+    topn_chunks = recommender(question)
+    prompt = ""
+    prompt += 'search results:\n\n'
+    for c in topn_chunks:
+        prompt += c + '\n\n'
+        
+    prompt += "Instructions: Compose a comprehensive reply to the query using the search results given. "\
+              "Cite each reference using [ Page Number] notation (every result has this number at the beginning). "\
+              "Citation should be done at the end of each sentence. If the search results mention multiple subjects "\
+              "with the same name, create separate answers for each. Only include information found in the results and "\
+              "don't add any additional information. Make sure the answer is correct and don't output false content. "\
+              "If the text does not relate to the query, simply state 'Text Not Found in PDF'. Ignore outlier "\
+              "search results which has nothing to do with the question. Only answer what is asked. The "\
+              "answer should be short and concise. Answer step-by-step. \n\nQuery: {question}\nAnswer: "
+    
+    prompt += f"Query: {question}\nAnswer:"
+    return prompt
+
+
+def hash_url_to_filename(url):
+    # Encode the URL as a bytes object
+    url_bytes = url.encode('utf-8')
+
+    # Compute the SHA-256 hash of the URL bytes
+    sha256 = hashlib.sha256()
+    sha256.update(url_bytes)
+    hash_bytes = sha256.digest()
+
+    # Convert the hash bytes to a hexadecimal string
+    hash_string = hash_bytes.hex()
+
+    # Return the first 20 characters of the hash string as the filename
+    return hash_string[:20]
+
+
+def question_answer_pdf(url, question):
+    hash_filename = hash_url_to_filename(url)
+    logging.info(f"Hashing {url} to {hash_filename}")
+    download_pdf(url, hash_filename)
+    load_recommender(hash_filename)
+
+    prompt = generate_answer(question)
+
+    return api.generate_response([{"role": "user", "content": prompt}])
 
 
 def split_text(text: str, max_length: int = 8192, delimiter: str = "\n") -> list[str]:

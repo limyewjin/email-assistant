@@ -50,4 +50,5 @@ python code/main.py
 ```
 
 ## Acknowledgements
-Code uses part of an early version of [Auto-GPT](https://github.com/Torantulino/Auto-GPT) with heavy modifications.
+- [Auto-GPT](https://github.com/Torantulino/Auto-GPT)
+- [pdfGPT](https://github.com/bhaskatripathi/pdfGPT)

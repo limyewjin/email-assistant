@@ -51,6 +51,8 @@ def execute_command(command_name, arguments):
             return search_serper(arguments["query"])
         elif command_name == "browse_website":
             return browse_website(arguments["url"])
+        elif command_name == "question_answer_pdf":
+            return question_answer_pdf(arguments["url"], arguments["question"])
         elif command_name == "website_summary":
             return website_summary(arguments["url"])
         elif command_name == "get_text_summary":
@@ -241,6 +243,10 @@ def search_serper(query, api_key=os.environ["SERPER_API_KEY"]):
     res = conn.getresponse()
     data = res.read()
     return data.decode("utf-8")
+
+
+def question_answer_pdf(url, question):
+    return commands_text.question_answer_pdf(url, question)
 
 
 def browse_website(url):
