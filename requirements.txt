@@ -9,3 +9,4 @@ tensorflow
 tensorflow-hub
 openai
 python-magic
+pyyaml

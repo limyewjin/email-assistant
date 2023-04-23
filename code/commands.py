@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+import agent
 import api
 import code
 import commands_text
@@ -15,8 +16,13 @@ import memory as mem
 from gcsa.google_calendar import GoogleCalendar
 from gcsa.event import Event
 
-task_completed = False
-final_answer = None
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    """Class to keep track of command state."""
+    task_completed: bool = False
+    final_answer: str = None
 
 def get_command(response):
     try:
@@ -35,7 +41,7 @@ def get_command(response):
         return "GetCommandError", str(e)
 
 
-def execute_command(command_name, arguments):
+def execute_command(state, command_name, arguments):
     try:
         if command_name == "memory_add":
             return commit_memory(arguments["key"], arguments["string"])
@@ -51,6 +57,8 @@ def execute_command(command_name, arguments):
             return search_serper(arguments["query"])
         elif command_name == "browse_website":
             return browse_website(arguments["url"])
+        elif command_name == "call_agent":
+            return call_agent(arguments["task"], arguments["agent_type"], arguments)
         elif command_name == "question_answer":
             return question_answer(arguments["url_or_filename"], arguments["question"])
         elif command_name == "get_text_summary":
@@ -79,7 +87,7 @@ def execute_command(command_name, arguments):
         elif command_name == "calendar_add_event":
             return calendar_add_event(arguments["text"], arguments["send_notifications"])
         elif command_name == "task_complete":
-            return task_complete(arguments["final_answer"])
+            return task_complete(state, arguments["final_answer"])
         elif command_name == "list_notes":
             return list_notes()
         elif command_name == "write_note":
@@ -93,6 +101,14 @@ def execute_command(command_name, arguments):
     # All errors, return "Error: + error message"
     except Exception as e:
         return "Error: " + str(e)
+
+
+def call_agent(task, agent_type, arguments):
+    try:
+        return agent.call_agent(task, agent_type, arguments)
+    except Exception as e:
+        return f"Error calling agent: {e}"
+
 
 def list_notes():
     try:
@@ -309,9 +325,8 @@ def load_memory():
 
     return f"No memory file found. Current memory: {mem.permanent_memory}"
 
-def task_complete(answer):
-    global task_completed, final_answer
+def task_complete(state, answer):
     print(f"FINAL ANSWER: {answer}")
-    task_completed = True
-    final_answer = answer
+    state.task_completed = True
+    state.final_answer = answer
     return "Task Completed!"

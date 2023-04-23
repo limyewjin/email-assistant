@@ -1,40 +1,16 @@
-import re
-import logging
-import sys
-import time
+import chat
+import commands
 
 from colorama import Fore, Style
 import json
-import os
+import logging
+import yaml
 
-import agent
-import api
-import chat
-import commands
-import memory as mem
-import prompt_data
+AGENTS_FILE = "./data/agents.txt"
+with open(f"{AGENTS_FILE}", "r") as f:
+    agent_types = yaml.safe_load(f)
+logging.info(f"Loaded agents: {agent_types.keys()}")
 
-import email_helper
-
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--testconsole', action='store_true')
-args = parser.parse_args()
-
-# Configure the logging module to log to both stdout and stderr
-log_format = '%(asctime)s %(levelname)s %(module)s:%(lineno)d %(funcName)s %(message)s'
-console = logging.StreamHandler(sys.stderr)
-console.setLevel(logging.INFO)
-console.setFormatter(logging.Formatter(log_format))
-
-root_logger = logging.getLogger()
-# Remove all existing handlers
-for handler in root_logger.handlers:
-    root_logger.removeHandler(handler)
-root_logger.setLevel(logging.INFO)
-root_logger.addHandler(console)
-
-commands.load_memory()
 
 def print_to_console(
         title,
@@ -98,32 +74,37 @@ def print_assistant_thoughts(assistant_reply):
         print_to_console("Error: \n", Fore.RED, str(e))
 
 
-def construct_prompt():
-    # Construct full prompt
-    instructions = prompt_data.load_instructions()
-    prompt = prompt_data.load_prompt()
-    agents = "AGENT TYPE:\n\n"
-    for i, agent_type in enumerate(agent.agent_types):
-        agents += f"{i+1}. {agent_type}: {agent.agent_types[agent_type]['description']}\n"
-    full_prompt = f"{instructions}\n\n{agents}\n\n{prompt}"
-    return full_prompt
+def call_agent(task, agent_type, arguments):
+    """Call an agent to perform a task.
 
-def resolve_request(request):
-    # initialize variables
-    prompt = construct_prompt()
+    Args:
+        task: Task to perform
+        agent_type: Type of agent
+        arguments: dict of arguments
+
+    Returns:
+        final_answer from agent
+    """
+    if agent_type not in agent_types:
+        return f"agent_type '{agent_type}' not found"
+
+    agent = agent_types[agent_type]
+    context = chat.Context()
+    prompt = f"{agent['instructions']}\n\n{agent['prompt']}"
     token_limit = 6000
-    result = None
 
-    context = chat.Context(
-            permanent_memory = mem.permanent_memory,
-            code_memory = mem.code_memory)
-
+    task_request = task
+    for key in arguments:
+        if key in ['task', 'agent_type']: continue
+        task_request += f" {key}: {arguments[key]}"
+    
     command_state = commands.State()
+
     num_iterations = 0
     while num_iterations < 50 and command_state.task_completed == False:
         assistant_reply = chat.chat_with_ai(
                 prompt,
-                request if num_iterations == 0 else '',
+                task_request if num_iterations == 0 else '',
                 context,
                 token_limit, True)
         print_assistant_thoughts(assistant_reply)
@@ -212,20 +193,4 @@ def resolve_request(request):
 
     return result
 
-if not args.testconsole:
-    email_helper.check_email_login()
-logging.info("Done initializing. Now looping.")
 
-# Loop indefinitely and check for new emails as they arrive, or handle the user-set alarm
-while True:
-    if args.testconsole:
-        user_input = input("User: ").strip()
-        final_answer = resolve_request(f"Subject: help Body: {user_input}")
-        print(final_answer)
-        print()
-    else:
-        msg = email_helper.inner_loop_check()
-        if msg is not None:
-            email_helper.send_email(f"Re: {msg.subject}", "Received request. I'm working on it", msg.text, msg.from_)
-            final_answer = resolve_request(f"Subject: {msg.subject} Body: {msg.text.strip()}")
-            email_helper.send_email(f"Re: {msg.subject}", final_answer, msg.text, msg.from_)

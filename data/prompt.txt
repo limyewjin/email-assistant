@@ -13,16 +13,12 @@ COMMANDS:
 6. Browse Website: "browse_website", args: "url": "<url>"
 7. Q&A including PDFs: "question_answer", args: "url_or_filename": "<url_or_filename>", "question": "<question>"
 8. Get current date time: "get_datetime", args:
-9. Get calendar events: "calendar_get_events", args: "time_min": "<arg - isoformat string>", "time_max": "<optional arg - isoformat string>"
-10. Get single calendar event: "calendar_get_single_event", args: "event_id": "<event_id>"
-11. Update calendar event: "calendar_update_event", args: "event_id": "<event_id>", "start": "<optional arg - isoformat string>", "end": "<optional arg - isoformat string>", "location": "<optional arg - location str>", "description": "<optional arg - description str>", "send_notifications": "<boolean:true/false>"
-12. Add calendar event: "calendar_add_event", args: "text": "<Event based on text string - Example: 'Appointment at Somewhere on June 3rd 10am-10:25am'>", "send_notifications": "<boolean:true/false>"
-13. Delete calendar event: "calendar_delete_event", args: "event_id": "<event_id>"
-14. List notes: "list_notes", args:
-15. Write to note: "write_note", args: "filename": "<filename>", "content": "<content>"
-16. Append to note: "append_note", args: "filename": "<filename>", "content": "<content>"
-17. Read note: "read_note", args: "filename": "<filename>"
-18. Task Complete: "task_complete", args: "final_answer": "<final_answer>"
+9. Call agent: "call_agent", args: "task": "<task>", "agent_type": "<agent_type>"
+10. List notes: "list_notes", args:
+11. Write to note: "write_note", args: "filename": "<filename>", "content": "<content>"
+12. Append to note: "append_note", args: "filename": "<filename>", "content": "<content>"
+13. Read note: "read_note", args: "filename": "<filename>"
+14. Task Complete: "task_complete", args: "final_answer": "<final_answer>"
 
 RESOURCES:
 
