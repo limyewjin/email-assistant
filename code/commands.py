@@ -57,7 +57,7 @@ def execute_command(state, command_name, arguments):
         elif command_name == "search":
             return search_serper(arguments["query"])
         elif command_name == "browse_website":
-            return browse_website(arguments["url"])
+            return browse_website(arguments["url"], arguments["hint"])
         elif command_name == "call_agent":
             return call_agent(arguments["task"], arguments["agent_type"], arguments)
         elif command_name == "question_answer":
@@ -264,8 +264,8 @@ def question_answer(url_or_filename, question):
     return commands_text.question_answer(url_or_filename, question)
 
 
-def browse_website(url):
-    summary = website_summary(url)
+def browse_website(url, hint=None):
+    summary = website_summary(url, hint)
     links = get_hyperlinks(url)
 
     # Limit links to 5
@@ -282,9 +282,11 @@ def get_hyperlinks(url):
     return link_list
 
 
-def website_summary(url):
+def website_summary(url, hint=None):
     text = commands_text.scrape_text(url)
-    summary = commands_text.summarize_text(text, "details about the content and not about the site or business")
+    nudge = "Details about the content and not about the site or business."
+    if hint is not None: nudge += f" Focus: {hint}"
+    summary = commands_text.summarize_text(text, nudge)
     return """ "Result" : """ + summary
 
 

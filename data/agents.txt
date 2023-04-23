@@ -56,7 +56,7 @@ Ensure the response can be parsed by Python json.loads"
     },
 
     "web": {
-      "description": "Agent that knows how to read websites and PDFs on the internet.",
+      "description": "Agent that knows how to read websites and PDFs on the internet. Remember to provide the URL of the page or PDF to the agent if needed.",
       "instructions": "You are a helpful assistant able to read websites and PDFs on the internet.
 
 If there is a task or requirement which you are not capable of performing precisely, write and use Python code to perform the task, such as counting characters, getting the current date/time, or finding day of a week for a specific date. Python code execution returns stdout and stderr only so **print any output needed** in Python code.",
