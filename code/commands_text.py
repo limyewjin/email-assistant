@@ -122,9 +122,8 @@ def scrape_links(url):
     return format_hyperlinks(hyperlinks)
 
 
-def text_to_chunks(texts, word_length=150, start_page=1):
+def text_to_chunks(texts, word_length=150):
     text_toks = [t.split(' ') for t in texts]
-    page_nums = []
     chunks = []
 
     for idx, words in enumerate(text_toks):
@@ -135,7 +134,7 @@ def text_to_chunks(texts, word_length=150, start_page=1):
                 text_toks[idx+1] = chunk + text_toks[idx+1]
                 continue
             chunk = ' '.join(chunk).strip()
-            chunk = f'[{idx+start_page}]' + ' ' + '"' + chunk + '"'
+            chunk = f'[{idx+1}]' + ' ' + '"' + chunk + '"'
             chunks.append(chunk)
     return chunks
 
@@ -274,7 +273,7 @@ def question_answer(url_or_filename, question):
             except OSError as e:
                 print(f"Error creating directory '{directory_path}': {e}")
 
-        hash_file = f"{directory_path}{hash_url_to_filename(url_or_filename)}"
+        hash_file = f"{directory_path}/{hash_url_to_filename(url_or_filename)}"
         logging.info(f"Hashing {url_or_filename} to {hash_file}")
 
         url = url_or_filename
@@ -352,12 +351,12 @@ def summarize_text(text, hint=None, is_website=True):
         raise ValueError("No text to summarize.")
 
     # Split the text into chunks
-    chunks = list(split_text(text))
+    chunks = text_to_chunks(text, word_length=4000)
 
     # Generate a summary for each chunk
     summaries = []
     for i, chunk in enumerate(chunks):
-        print(f"Summarizing chunk {i + 1} / {len(chunks)}")
+        logging.info(f"Summarizing chunk {i + 1} / {len(chunks)} - length: {len(chunk)}")
         prompt = f"Please summarize the following {'website text and focus on the content and not on the website or publisher itself' if is_website else 'text'}, focusing on extracting concise and specific information{' about {hint}' if (hint is not None and hint.strip() != '') else ''}:\n{chunk}"
         summary = api.generate_response([{"role": "user", "content": prompt}])
         summaries.append(summary)
@@ -366,6 +365,7 @@ def summarize_text(text, hint=None, is_website=True):
 
     # Generate a summary for the combined summary chunks
     combined_summary = "\n".join(summaries)
+    logging.info(f"Combined summary len: {len(combined_summary)}")
     prompt = f"Please summarize the following {'website text and focus on the content and not on the website or publisher itself' if is_website else 'text'}, focusing on extracting concise and specific information{' about {hint}' if (hint is not None and hint.strip() != '') else ''}:\n{combined_summary}"
     final_summary = api.generate_response([{"role": "user", "content": prompt}])
 
