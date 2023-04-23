@@ -10,6 +10,7 @@ load_dotenv()
 import agent
 import api
 import code
+import constants
 import commands_text
 import memory as mem
 
@@ -112,13 +113,13 @@ def call_agent(task, agent_type, arguments):
 
 def list_notes():
     try:
-        return os.listdir("./data/notes")
+        return os.listdir(constants.FILES_PATH)
     except Exception as e:
         return f"Error listing dir: {e}"
 
 def append_note(key, content):
     try:
-        with open(f"./data/notes/{key}", "a+") as f:
+        with open(f"{constants.FILES_PATH}/{key}", "a+") as f:
             f.write(f"{content}\n")
     except Exception as e:
         return f"Error writing: {e}"
@@ -128,7 +129,7 @@ def append_note(key, content):
 
 def write_note(key, content):
     try:
-        with open(f"./data/notes/{key}", "w+") as f:
+        with open(f"{constants.FILES_PATH}/{key}", "w+") as f:
             f.write(f"{content}\n")
     except Exception as e:
         return f"Error writing: {e}"
@@ -137,7 +138,7 @@ def write_note(key, content):
 
 def read_note(key):
     try:
-        with open(f"./data/notes/{key}", "r") as f:
+        with open(f"{constants.FILES_PATH}/{key}", "r") as f:
             content = f.read().strip()
     except Exception as e:
         return f"Error writing: {e}"

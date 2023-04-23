@@ -13,6 +13,8 @@ import requests
 from bs4 import BeautifulSoup
 
 import api
+import constants
+
 import logging
 
 from urllib.parse import urlparse
@@ -264,7 +266,7 @@ def question_answer(url_or_filename, question):
     if is_valid_url(url_or_filename):
         logging.info(f"{url_or_filename} is a valid URL")
 
-        directory_path = "./data/hash/"
+        directory_path = constants.FILES_PATH
         if not os.path.exists(directory_path):
             try:
                 os.makedirs(directory_path)
@@ -280,7 +282,7 @@ def question_answer(url_or_filename, question):
 
         load_recommender(hash_file, load_embedding=True)
     else:
-        filename = url_or_filename
+        filename = f"{constants.FILES_PATH}/{url_or_filename}"
         load_recommender(filename, load_embedding=False)
 
     prompt = generate_answer(question)

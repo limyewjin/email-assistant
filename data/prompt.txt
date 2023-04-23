@@ -10,15 +10,9 @@ COMMANDS:
 3. Add Python code: "code_add", args: "key": "<key>", "description": "<one line description>", "args": "<dict of 'arg':description>", "code": "<code>"
 4. Memory Add: "memory_add", args: "key": "<key>", "string": "<string>"
 5. Memory Delete: "memory_del", args: "key": "<key>"
-6. Browse Website: "browse_website", args: "url": "<url>"
-7. Q&A including PDFs: "question_answer", args: "url_or_filename": "<url_or_filename>", "question": "<question>"
-8. Get current date time: "get_datetime", args:
-9. Call agent: "call_agent", args: "task": "<task>", "agent_type": "<agent_type>"
-10. List notes: "list_notes", args:
-11. Write to note: "write_note", args: "filename": "<filename>", "content": "<content>"
-12. Append to note: "append_note", args: "filename": "<filename>", "content": "<content>"
-13. Read note: "read_note", args: "filename": "<filename>"
-14. Task Complete: "task_complete", args: "final_answer": "<final_answer>"
+6. Get current date time: "get_datetime", args:
+7. Call agent: "call_agent", args: "task": "<task>", "agent_type": "<agent_type>"
+8. Task Complete: "task_complete", args: "final_answer": "<final_answer>"
 
 RESOURCES:
 

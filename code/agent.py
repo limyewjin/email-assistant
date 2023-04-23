@@ -1,15 +1,38 @@
 import chat
 import commands
+import constants
+import memory as mem
+import prompt_data
 
 from colorama import Fore, Style
 import json
 import logging
 import yaml
 
-AGENTS_FILE = "./data/agents.txt"
-with open(f"{AGENTS_FILE}", "r") as f:
-    agent_types = yaml.safe_load(f)
-logging.info(f"Loaded agents: {agent_types.keys()}")
+agent_types = {}
+
+
+def init_agents():
+    global agent_types
+
+    with open(f"{constants.AGENTS_FILE}", "r") as f:
+        agent_types = yaml.safe_load(f)
+
+    for agent_type in agent_types:
+        agent = agent_types[agent_type]
+        prompt = f"{agent['instructions']}\n\n{agent['prompt']}"
+        agent["full_prompt"] = prompt
+
+    # Construct main agent
+    instructions = prompt_data.load_instructions()
+    prompt = prompt_data.load_prompt()
+    agents = "AGENT TYPE:\n\n"
+    for i, agent_type in enumerate(agent_types):
+        agents += f"{i+1}. {agent_type}: {agent_types[agent_type]['description']}\n"
+    full_prompt = f"{instructions}\n\n{agents}\n\n{prompt}"
+    agent_types["main"] = { "full_prompt": full_prompt }
+
+    logging.info(f"Loaded agents: {agent_types.keys()}")
 
 
 def print_to_console(
@@ -74,7 +97,7 @@ def print_assistant_thoughts(assistant_reply):
         print_to_console("Error: \n", Fore.RED, str(e))
 
 
-def call_agent(task, agent_type, arguments):
+def call_agent(task, agent_type = "main", arguments = {}):
     """Call an agent to perform a task.
 
     Args:
@@ -89,8 +112,14 @@ def call_agent(task, agent_type, arguments):
         return f"agent_type '{agent_type}' not found"
 
     agent = agent_types[agent_type]
-    context = chat.Context()
-    prompt = f"{agent['instructions']}\n\n{agent['prompt']}"
+
+    if agent_type == "main":
+        context = chat.Context(
+                permanent_memory = mem.permanent_memory,
+                code_memory = mem.code_memory)
+    else:
+        context = chat.Context()
+
     token_limit = 6000
 
     task_request = task
@@ -103,7 +132,7 @@ def call_agent(task, agent_type, arguments):
     num_iterations = 0
     while num_iterations < 50 and command_state.task_completed == False:
         assistant_reply = chat.chat_with_ai(
-                prompt,
+                agent["full_prompt"],
                 task_request if num_iterations == 0 else '',
                 context,
                 token_limit, True)
