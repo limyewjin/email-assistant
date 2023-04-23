@@ -56,7 +56,7 @@ Ensure the response can be parsed by Python json.loads"
     },
 
     "web": {
-      "description": "Agent that knows how to read websites and PDFs on the internet. Remember to provide the URL of the page or PDF to the agent if needed.",
+      "description": "Agent that knows how to read websites and PDFs on the internet. Remember to provide the URL of the page or PDF to the agent and scope of what to look for if needed.",
       "instructions": "You are a helpful assistant able to read websites and PDFs on the internet.
 
 If there is a task or requirement which you are not capable of performing precisely, write and use Python code to perform the task, such as counting characters, getting the current date/time, or finding day of a week for a specific date. Python code execution returns stdout and stderr only so **print any output needed** in Python code.",
@@ -69,7 +69,7 @@ COMMANDS:
 
 1. Execute Python code: \"code_execute\", args: \"key\": \"<key>\", \"args\": \"<dict of 'arg':value>\"
 2. Add Python code: \"code_add\", args: \"key\": \"<key>\", \"description\": \"<one line description>\", \"args\": \"<dict of 'arg':description>\", \"code\": \"<code>\"
-3. Browse Website: \"browse_website\", args: \"url\": \"<url>\"
+3. Browse Website: \"browse_website\", args: \"url\": \"<url>\", \"hint\": \"<hint>\"
 4. Q&A on URL or files including PDFs: \"question_answer\", args: \"url_or_filename\": \"<url_or_filename>\", \"question\": \"<question>\"
 5. Get current date time: \"get_datetime\", args:
 6. Task Complete: \"task_complete\", args: \"final_answer\": \"<final_answer>\"
