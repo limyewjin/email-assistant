@@ -54,6 +54,12 @@ Run the email assistant which runs in a loop - I just ran mine in `screen` and d
 python code/main.py
 ```
 
+To test on console run with `--testconsole` argument:
+
+``` bash
+python code/main.py --testconsole
+```
+
 ## Acknowledgements
 - [Auto-GPT](https://github.com/Torantulino/Auto-GPT)
 - [pdfGPT](https://github.com/bhaskatripathi/pdfGPT)
