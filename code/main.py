@@ -1,6 +1,3 @@
-from imap_tools import MailBox, A
-import datetime
-import email
 import re
 import logging
 import sys
@@ -16,57 +13,27 @@ import commands
 import memory as mem
 import prompt_data
 
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import email_helper
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--testconsole', action='store_true')
+args = parser.parse_args()
 
 # Configure the logging module to log to both stdout and stderr
 log_format = '%(asctime)s %(levelname)s %(module)s:%(lineno)d %(funcName)s %(message)s'
-logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
 console = logging.StreamHandler(sys.stderr)
-console.setLevel(logging.ERROR)
+console.setLevel(logging.INFO)
 console.setFormatter(logging.Formatter(log_format))
-logging.getLogger('').addHandler(console)
 
-from dotenv import load_dotenv
-import os
-load_dotenv()
-
-# Define the email account details
-email_user = os.environ["EMAIL_USER"]
-email_password = os.environ["EMAIL_PASSWORD"]
-imap_server = 'imap.gmail.com'
-imap_port = 993
-
-# Define the expected sender email address
-expected_senders = os.environ["EXPECTED_SENDERS"].strip().split(',')
-
-# Timeout to use around connections and requests.
-TIMEOUT = 60 * 10
+root_logger = logging.getLogger()
+# Remove all existing handlers
+for handler in root_logger.handlers:
+    root_logger.removeHandler(handler)
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(console)
 
 commands.load_memory()
-
-
-def send_email(subject, body, original_msg, recipient, sender=email_user, password=email_password):
-    #msg = MIMEText(body)
-    msg = MIMEMultipart()
-    msg['Subject'] = subject
-    msg['From'] = sender
-    msg['To'] = recipient
-
-    # quote the original email
-    quoted_body = f"{body}\n\n----- Original Message -----\n"
-    for line in original_msg.split('\n'):
-        quoted_body += f"> {line}\n"
-
-    # attach the quoted body to the MIME message
-    msg.attach(MIMEText(quoted_body, 'plain'))
-
-    smtp_server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-    smtp_server.login(sender, password)
-    smtp_server.sendmail(sender, [recipient], msg.as_string())
-    smtp_server.quit()
-
 
 def print_to_console(
         title,
@@ -143,7 +110,11 @@ def resolve_request(request):
     token_limit = 6000
     result = None
 
-    chat.reset()
+    # Special
+    context = chat.Context(
+            permanent_memory = mem.permanent_memory,
+            code_memory = mem.code_memory)
+
     commands.task_completed = False
     commands.final_answer = None
     num_iterations = 0
@@ -151,8 +122,7 @@ def resolve_request(request):
         assistant_reply = chat.chat_with_ai(
                 prompt,
                 request if num_iterations == 0 else '',
-                mem.permanent_memory,
-                mem.code_memory,
+                context,
                 token_limit, True)
         print_assistant_thoughts(assistant_reply)
 
@@ -163,7 +133,7 @@ def resolve_request(request):
             command_name = command_name.strip()
         except Exception as e:
             notes = "Error encountered while trying to parse response: {e}."
-            chat.create_chat_message("user", notes)
+            chat.create_chat_message("user", notes, context)
             print_to_console("Error: \n", Fore.RED, str(e))
 
         if len(command_name) == 0 or command_name == "GetCommandError":
@@ -195,7 +165,7 @@ def resolve_request(request):
 
                 nudge += " Next response should follow RESPONSE FORMAT."
 
-            chat.create_chat_message("user", nudge)
+            chat.create_chat_message("user", nudge, context)
             print_to_console("SYSTEM: ", Fore.YELLOW, f"{command_name} {arguments}")
             print()
             num_iterations += 1
@@ -216,15 +186,15 @@ def resolve_request(request):
         if result is not None:
             if command_result == f"Unknown command {command_name}":
                 nudge = f"{result}. Specify only valid commands."
-                chat.create_chat_message("system", nudge)
+                chat.create_chat_message("system", nudge, context)
             else:
-                chat.create_chat_message("system", result)
+                chat.create_chat_message("system", result, context)
             if len(result) > 100:
                 print_to_console("SYSTEM: ", Fore.YELLOW, result[:100] + "...")
             else:
                 print_to_console("SYSTEM: ", Fore.YELLOW, result)
         else:
-            chat.create_chat_message("system", "Unable to execute command")
+            chat.create_chat_message("system", "Unable to execute command", context)
             print_to_console("SYSTEM: ", Fore.YELLOW, "Unable to execute command")
 
         print()
@@ -236,43 +206,20 @@ def resolve_request(request):
 
     return result
 
-with MailBox(imap_server).login(email_user, email_password, 'INBOX') as mailbox:
-    logging.info("Login to email confirmed")
-
+if not args.testconsole:
+    email_helper.check_email_login()
 logging.info("Done initializing. Now looping.")
 
 # Loop indefinitely and check for new emails as they arrive, or handle the user-set alarm
 while True:
-    sixty_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=60)
-    date_gte_criteria = sixty_minutes_ago.date()
-
-    try:
-        # waiting for updates TIMEOUT sec, print unseen immediately if any update
-        with MailBox(imap_server).login(email_user, email_password, 'INBOX') as mailbox:
-            msgs = [msg for msg in mailbox.fetch(A(seen=False, date_gte=date_gte_criteria))]
-            if len(msgs) == 0:
-                    responses = mailbox.idle.wait(timeout=TIMEOUT)
-                    if responses:
-                        msgs = [msg for msg in mailbox.fetch(A(seen=False, date_gte=date_gte_criteria))]
-            if len(msgs) > 0:
-                for msg in msgs:
-                    if msg.from_ not in expected_senders: continue
-
-                    # Check the "Received" headers for additional security
-                    received_headers = msg.headers.get('received', [])
-                    is_valid_email = False
-                    for received_header in received_headers:
-                        # check if the header contains a trusted domain
-                        if 'google.com' in received_header:
-                            is_valid_email = True
-                            break
-
-                    # Skip if the email is not valid based on the "Received" headers
-                    if not is_valid_email:
-                        continue
-
-                    send_email(f"Re: {msg.subject}", "Received request. I'm working on it", msg.text, msg.from_)
-                    final_answer = resolve_request(f"Subject: {msg.subject} Body: {msg.text.strip()}")
-                    send_email(f"Re: {msg.subject}", final_answer, msg.text, msg.from_)
-    except Exception as e:
-        logging.error(f"Exception {e}")
+    if args.testconsole:
+        user_input = input("User: ").strip()
+        final_answer = resolve_request(f"Subject: help Body: {user_input}")
+        print(final_answer)
+        print()
+    else:
+        msg = email_helper.inner_loop_check()
+        if msg is not None:
+            email_helper.send_email(f"Re: {msg.subject}", "Received request. I'm working on it", msg.text, msg.from_)
+            final_answer = resolve_request(f"Subject: {msg.subject} Body: {msg.text.strip()}")
+            email_helper.send_email(f"Re: {msg.subject}", final_answer, msg.text, msg.from_)

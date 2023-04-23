@@ -7,23 +7,23 @@ import api
 import logging
 import sys
 
-# Configure the logging module to log to both stdout and stderr
-log_format = '%(asctime)s %(levelname)s %(module)s %(funcName)s %(message)s'
-logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
-console = logging.StreamHandler(sys.stderr)
-console.setLevel(logging.ERROR)
-console.setFormatter(logging.Formatter(log_format))
-logging.getLogger('').addHandler(console)
+from dataclasses import dataclass
 
-full_message_history = []
-working_message_history = []
+@dataclass
+class Context:
+    """Class to keep track of chat context."""
+    full_message_history: list[str] = None
+    working_message_history: list[str] = None
+    permanent_memory: dict = None
+    code_memory: dict = None
 
-def reset():
-    global full_message_history, working_message_history
-    full_message_history = []
-    working_message_history = []
+    def __post_init__(self):
+        self.full_message_history = self.full_message_history or []
+        self.working_message_history = self.working_message_history or []
+        self.permanent_memory = self.permanent_memory or {}
+        self.code_memory = self.code_memory or {}
 
-def create_chat_message(role, content, add_to_history=True):
+def create_chat_message(role, content, context, add_to_history=True):
     """
     Create a chat message with the given role and content.
     Args:
@@ -32,12 +32,10 @@ def create_chat_message(role, content, add_to_history=True):
     Returns:
     dict: A dictionary containing the role and content of the message.
     """
-    global full_message_history, working_message_history
-
     message = {"role": role, "content": content}
     if add_to_history:
-        full_message_history.append(message)
-        working_message_history.append(message)
+        context.full_message_history.append(message)
+        context.working_message_history.append(message)
     return message
 
 
@@ -74,38 +72,35 @@ def optimize_messages(messages):
 def chat_with_ai(
         prompt,
         user_input,
-        permanent_memory,
-        code_memory,
+        context,
         token_limit,
         debug=False):
-    global full_message_history, working_message_history
-
     code_memory_short = {
             key: {
-                'description': code_memory[key]['description'],
-                'args': code_memory[key]['args'] 
+                'description': context.code_memory[key]['description'],
+                'args': context.code_memory[key]['args'] 
             }
-            for key in code_memory }
+            for key in context.code_memory }
     current_context = [
-            create_chat_message("system", prompt, False),
-            create_chat_message("system", f"Permanent memory: {permanent_memory}", False),
-            create_chat_message("system", f"Code memory: {code_memory_short}", False),
+            create_chat_message("system", prompt, context, False),
+            create_chat_message("system", f"Permanent memory: {context.permanent_memory}", context, False),
+            create_chat_message("system", f"Code memory: {code_memory_short}", context, False),
             ]
 
     num_current_context_tokens = sum(len(msg["content"].split()) for msg in current_context) + len(prompt.split())
-    num_working_message_history_tokens = sum(len(msg["content"].split()) for msg in working_message_history)
+    num_working_message_history_tokens = sum(len(msg["content"].split()) for msg in context.working_message_history)
 
     if num_current_context_tokens + num_working_message_history_tokens > token_limit / 2:
         # Optimize the messages using the `optimize_messages` function
         logging.info("Optimizing conversation as it is getting too long")
-        condensed_messages = optimize_messages(full_message_history[:-2])
-        working_message_history = condensed_messages + full_message_history[-2:]
-        logging.info(f"adding this to context: {condensed_messages + full_message_history[-2:]}")
+        condensed_messages = optimize_messages(context.full_message_history[:-2])
+        context.working_message_history = condensed_messages + context.full_message_history[-2:]
+        logging.info(f"adding this to context: {condensed_messages + context.full_message_history[-2:]}")
 
     if len(user_input.strip()) > 0:
-        create_chat_message("user", user_input)
+        create_chat_message("user", user_input, context)
 
-    current_context.extend(working_message_history)
+    current_context.extend(context.working_message_history)
 
     # Debug print the current context
     if debug:
@@ -120,5 +115,6 @@ def chat_with_ai(
     assistant_reply = api.generate_response(current_context, model="gpt-4").strip()
 
     # Update message history
-    create_chat_message("assistant", assistant_reply)
+    create_chat_message("assistant", assistant_reply, context)
+
     return assistant_reply

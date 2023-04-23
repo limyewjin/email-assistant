@@ -13,18 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 
 import api
-
-
 import logging
-import sys
-# Configure the logging module to log to both stdout and stderr
-log_format = '%(asctime)s %(levelname)s %(module)s:%(lineno)d %(funcName)s %(message)s'
-logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
-console = logging.StreamHandler(sys.stderr)
-console.setLevel(logging.ERROR)
-console.setFormatter(logging.Formatter(log_format))
-logging.getLogger('').addHandler(console)
-
 
 from urllib.parse import urlparse
 
