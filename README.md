@@ -1,6 +1,11 @@
 # GPT-4 Email Assistant
 This project provides a GPT-4 email assistant that responds to emails and fulfills various tasks for the user. The assistant has access to numerous commands, resources, and can interact with Google Calendar API. To set up the project, follow the instructions below.
 
+## Demo Video
+https://user-images.githubusercontent.com/2718703/233847404-ca4e82a2-f7b9-4150-908c-848d26d28ae8.mp4
+
+[YouTube link](https://youtu.be/HoxkBxHqSuE)
+
 ## Requirements
 Python 3.8 or higher
 
