@@ -193,7 +193,7 @@ def call_agent(task, agent_type = "main", arguments = {}):
         command_result = commands.execute_command(command_state, command_name, arguments)
         result = f"Command {command_name} returned: {command_result}"
 
-        if command_name == "code_execute" and command_results == "('', '')":
+        if command_name == "code_execute" and command_result == "('', '')":
             nudge = "If you were expecting results from 'code_execute', remember that results need to be printed."
             chat.create_chat_message("user", nudge, context)
 
