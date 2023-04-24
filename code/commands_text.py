@@ -391,7 +391,7 @@ def summarize_text(text, hint=None, is_website=True):
     logging.info(f"Combined summary len: {len(combined_summary)}")
     if len(combined_summary_chunks) > 1:
         logging.info(f"Recursively calling summarization...")
-        combined_summary = summarize_text(combined_summary, hint=hint, is_website=is_website):
+        combined_summary = summarize_text(combined_summary, hint=hint, is_website=is_website)
     prompt = f"Please summarize the following {'website text and focus on the content and not on the website or publisher itself' if is_website else 'text'}, focusing on extracting concise and specific information{' about {hint}' if (hint is not None and hint.strip() != '') else ''}:\n{combined_summary}"
     final_summary = api.generate_response([{"role": "user", "content": prompt}])
 
