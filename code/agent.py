@@ -177,6 +177,12 @@ def call_agent(task, agent_type = "main", arguments = {}):
 
                 nudge += " Next response should follow RESPONSE FORMAT."
 
+            if (len(context.full_message_history) > 3 and
+                context.full_message_history[-1]["role"] == "assistant" and
+                context.full_message_history[-3]["role"] == "assistant" and
+                context.full_message_history[-1]["content"] == context.full_message_history[-3]["content"]):
+                nudge += " You are repeating responses - DO NOT REPEAT YOUR LAST RESPONSE."
+
             chat.create_chat_message("user", nudge, context)
             print_to_console("SYSTEM: ", Fore.YELLOW, f"{command_name} {arguments}")
             print()
