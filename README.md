@@ -40,6 +40,7 @@ Example:
 ```plaintext
 OPENAI_API_KEY=your_openai_key
 SERPER_API_KEY=your_serper_key
+SCRAPINGANT_API_KEY=your_scrapingant_key (optional)
 EMAIL_USER=your_bot_email@example.com
 EMAIL_PASSWORD=your_bot_email_password
 EXPECTED_SENDERS=user1@example.com,user2@example.com

@@ -17,7 +17,12 @@ import constants
 
 import logging
 
+import http.client
 from urllib.parse import urlparse
+
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 def is_valid_url(url):
     try:
@@ -70,15 +75,32 @@ def pdf_to_text(path, start_page=1, end_page=None):
     return text_list
 
 
+def scrapingant_get(url, api_key=os.environ["SCRAPINGANT_API_KEY"]):
+    conn = http.client.HTTPSConnection("api.scrapingant.com")
+
+    url_quote = urllib.parse.quote(url, safe='')
+
+    conn.request("GET", f"/v2/general?url={url_quote}&x-api-key={api_key}&proxy_country=US")
+
+    res = conn.getresponse()
+    data = res.read()
+
+    return data.decode("utf-8")
+
 
 def scrape_text(url):
     response = requests.get(url)
 
     # Check if the response contains an HTTP error
     if response.status_code >= 400:
-        return "Error: HTTP " + str(response.status_code) + " error"
+        if "SCRAPINGANT_API_KEY" in os.environ:
+            text = scrapingant_get(url)
+        else:
+            return "Error: HTTP " + str(response.status_code) + " error"
+    else:
+        text = response.text
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    soup = BeautifulSoup(text, "html.parser")
 
     for script in soup(["script", "style"]):
         script.extract()

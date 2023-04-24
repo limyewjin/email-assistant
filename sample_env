@@ -1,6 +1,7 @@
 <RENAME THIS FILE TO .env>
 OPENAI_API_KEY=<openai key>
 SERPER_API_KEY=<serper key>
+SCRAPINGANT_API_KEY=<scraping ant key>
 EMAIL_USER=<bot email address>
 EMAIL_PASSWORD=<bot API key>
 EXPECTED_SENDERS=<comma-separated list of expected senders to bot>
