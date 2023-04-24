@@ -144,7 +144,7 @@ def scrape_links(url):
     return format_hyperlinks(hyperlinks)
 
 
-def text_to_chunks(texts, word_length=150):
+def text_to_chunks(texts, word_length=150, start_page=1):
     text_toks = [t.split(' ') for t in texts]
     chunks = []
 
@@ -156,7 +156,7 @@ def text_to_chunks(texts, word_length=150):
                 text_toks[idx+1] = chunk + text_toks[idx+1]
                 continue
             chunk = ' '.join(chunk).strip()
-            chunk = f'[{idx+1}]' + ' ' + '"' + chunk + '"'
+            chunk = f'[{idx+start_page}]' + ' ' + '"' + chunk + '"'
             chunks.append(chunk)
     return chunks
 
@@ -387,7 +387,11 @@ def summarize_text(text, hint=None, is_website=True):
 
     # Generate a summary for the combined summary chunks
     combined_summary = "\n".join(summaries)
+    combined_summary_chunks = text_to_chunks(combined_summary, word_length=4000)
     logging.info(f"Combined summary len: {len(combined_summary)}")
+    if len(combined_summary_chunks) > 1:
+        logging.info(f"Recursively calling summarization...")
+        combined_summary = summarize_text(combined_summary, hint=hint, is_website=is_website):
     prompt = f"Please summarize the following {'website text and focus on the content and not on the website or publisher itself' if is_website else 'text'}, focusing on extracting concise and specific information{' about {hint}' if (hint is not None and hint.strip() != '') else ''}:\n{combined_summary}"
     final_summary = api.generate_response([{"role": "user", "content": prompt}])
 
