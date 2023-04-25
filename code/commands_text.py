@@ -18,7 +18,8 @@ import constants
 import logging
 
 import http.client
-from urllib.parse import urlparse
+import urllib.parse
+import urllib.request
 
 import os
 from dotenv import load_dotenv

@@ -58,6 +58,8 @@ def execute_command(state, command_name, arguments):
             return search_serper(arguments["query"])
         elif command_name == "browse_website":
             return browse_website(arguments["url"], arguments["hint"])
+        elif command_name == "scrape":
+            return scrape(arguments["url"])
         elif command_name == "call_agent":
             return call_agent(arguments["task"], arguments["agent_type"], arguments)
         elif command_name == "question_answer":
@@ -262,6 +264,10 @@ def search_serper(query, api_key=os.environ["SERPER_API_KEY"]):
 
 def question_answer(url_or_filename, question):
     return commands_text.question_answer(url_or_filename, question)
+
+
+def scrape(url):
+    return commands_text.scrape(url)
 
 
 def browse_website(url, hint=None):

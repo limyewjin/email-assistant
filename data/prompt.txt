@@ -11,7 +11,7 @@ COMMANDS:
 4. Memory Add: "memory_add", args: "key": "<key>", "string": "<string>"
 5. Memory Delete: "memory_del", args: "key": "<key>"
 6. Get current date time: "get_datetime", args:
-7. Call agent: "call_agent", args: "task": "<task>", "agent_type": "<agent_type>"
+7. Call agent: "call_agent", args: "task": "<task request with details like URL or what to focus on doing>", "agent_type": "<agent_type>"
 8. Task Complete: "task_complete", args: "final_answer": "<final_answer>"
 
 RESOURCES:
