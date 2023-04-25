@@ -186,7 +186,7 @@ COMMANDS:
 
 APIs:
 
-Use "scrape" command to assess these.
+Use \"scrape\" command to assess these.
 
 - https://anime-facts-rest-api.herokuapp.com/api/v1/:anime_name
 An API in Node.js that will return anime facts.
