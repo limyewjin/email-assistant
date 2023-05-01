@@ -10,3 +10,5 @@ tensorflow-hub
 openai
 python-magic
 pyyaml
+retrying
+dateparser

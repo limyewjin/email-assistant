@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 2. Follow the instructions at Google Calendar Simple API [Getting Started](https://google-calendar-simple-api.readthedocs.io/en/latest/getting_started.html) to set up the Google Calendar API credentials. Copy the credentials to `~/.credentials`
 
-3. Set up an email account for your bot which you will use to email to and the bot will monitor. I used Gmail and got an [app password](https://support.google.com/accounts/answer/185833?hl=en).
+3. Set up an email account for your bot which you will use to email to and the bot will monitor. I used Gmail and got an [app password](https://myaccount.google.com/apppasswords).
 
 4. Set up a [serper.dev](https://serper.dev/) account to provide Search.
 
