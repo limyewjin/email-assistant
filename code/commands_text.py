@@ -145,20 +145,37 @@ def scrape_links(url):
     return format_hyperlinks(hyperlinks)
 
 
-def text_to_chunks(texts, word_length=150, start_page=1):
-    text_toks = [t.split(' ') for t in texts]
-    chunks = []
+def num_tokens_from_string(string: str, model: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.encoding_for_model(model)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
 
-    for idx, words in enumerate(text_toks):
-        for i in range(0, len(words), word_length):
-            chunk = words[i:i+word_length]
-            if (i+word_length) > len(words) and (len(chunk) < word_length) and (
-                len(text_toks) != (idx+1)):
-                text_toks[idx+1] = chunk + text_toks[idx+1]
-                continue
-            chunk = ' '.join(chunk).strip()
-            chunk = f'[{idx+start_page}]' + ' ' + '"' + chunk + '"'
-            chunks.append(chunk)
+def text_to_chunks(text: str, token_limit: int, overlap: int, model: str = "gpt-3.5-turbo"):
+    if overlap >= token_limit:
+        raise ValueError("Overlap should be less than the token limit.")
+
+    text_tokens = num_tokens_from_string(text, model)
+
+    if text_tokens <= token_limit:
+        return [text]
+
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + token_limit
+        if end >= len(text):
+            chunks.append(text[start:])
+            break
+
+        chunk = text[start:end].strip()
+        overlap_start = max(0, end - overlap)
+        while num_tokens_from_string(text[overlap_start:end], model) > overlap:
+            overlap_start -= 1
+
+        chunks.append(chunk)
+        start = overlap_start
+
     return chunks
 
 
@@ -215,7 +232,7 @@ def load_recommender(path, start_page=1, load_embedding=False):
 
         if is_pdf(path):
             texts = pdf_to_text(path, start_page=start_page)
-            chunks = text_to_chunks(texts, start_page=start_page)
+            chunks = text_to_chunks(texts, overlap=20)
         else:
             with open(path, "r") as f:
                 texts = f.read()
@@ -231,7 +248,7 @@ def load_recommender(path, start_page=1, load_embedding=False):
 
     if is_pdf(path):
         texts = pdf_to_text(path, start_page=start_page)
-        chunks = text_to_chunks(texts, start_page=start_page)
+        chunks = text_to_chunks(texts, overlap=20)
     else:
         with open(path, "r") as f:
             texts = f.read()
