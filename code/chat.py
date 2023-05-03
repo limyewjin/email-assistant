@@ -9,6 +9,8 @@ import sys
 
 from dataclasses import dataclass
 
+import tiktoken
+
 @dataclass
 class Context:
     """Class to keep track of chat context."""
@@ -37,6 +39,13 @@ def create_chat_message(role, content, context, add_to_history=True):
         context.full_message_history.append(message)
         context.working_message_history.append(message)
     return message
+
+
+def num_tokens_from_string(string: str, model: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.encoding_for_model(model)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
 
 
 def optimize_messages(messages):
@@ -87,10 +96,11 @@ def chat_with_ai(
             create_chat_message("system", f"Code memory: {code_memory_short}", context, False),
             ]
 
-    num_current_context_tokens = sum(len(msg["content"].split()) for msg in current_context) + len(prompt.split())
-    num_working_message_history_tokens = sum(len(msg["content"].split()) for msg in context.working_message_history)
+    current_context_tokens = '\n'.join(msg["content"] for msg in current_context)
+    working_message_history_tokens = '\n'.join(msg["content"] for msg in context.working_message_history)
 
-    if num_current_context_tokens + num_working_message_history_tokens > token_limit / 2:
+    num_tokens = num_tokens_from_string(f"{prompt}\n{current_context_tokens}\n{working_message_history_tokens}", "gpt-3.5-turbo")
+    if num_tokens > token_limit - 1000:
         # Optimize the messages using the `optimize_messages` function
         logging.info("Optimizing conversation as it is getting too long")
         condensed_messages = optimize_messages(context.full_message_history[:-2])

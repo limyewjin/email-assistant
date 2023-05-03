@@ -120,7 +120,7 @@ def call_agent(task, agent_type = "main", arguments = {}):
     else:
         context = chat.Context()
 
-    token_limit = 6000
+    token_limit = 8000
 
     task_request = task
     for key in arguments:
